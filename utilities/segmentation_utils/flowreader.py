@@ -1,9 +1,9 @@
 import os
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
-from utilities.segmentation_utils.image_encoder import ImagePreprocessor
-#! important: as the I have no clue how we can mount this repo as a package the import is relative to the working directory
+from utilities.segmentation_utils import ImagePreprocessor
 
+#! important: as the I have no clue how we can mount this repo as a package the import is relative to the working directory
 
 
 class FlowGenerator:
@@ -73,7 +73,7 @@ class FlowGenerator:
         None
 
         """
-        
+
         image_datagen = ImageDataGenerator()
         mask_datagen = ImageDataGenerator()
 
@@ -99,7 +99,7 @@ class FlowGenerator:
 
     def get_generator(self):
         """
-        Returns the generator
+        Returns the generator object
 
         Parameters:
         ----------
@@ -114,7 +114,8 @@ class FlowGenerator:
 
     def preprocess(self, generator_zip):
         """
-        Preprocessor function to augments the images and masks and onehot encodes the masks
+        Preprocessor function encapsulates both the image, and mask generator objects.
+        Augments the images and masks and onehot encodes the masks
 
         Parameters:
         ----------
@@ -128,7 +129,7 @@ class FlowGenerator:
             for i in range(len(img)):
                 image_seed = np.random.randint(0, 100000)
                 img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
-                    img[i], mask[i], self.image_size,seed=image_seed
+                    img[i], mask[i], self.image_size, seed=image_seed
                 )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.image_size, self.num_classes

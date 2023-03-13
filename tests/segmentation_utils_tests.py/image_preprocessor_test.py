@@ -1,4 +1,4 @@
-from utilities.segmentation_utils.image_encoder import ImagePreprocessor
+from utilities.segmentation_utils import ImagePreprocessor
 import numpy as np
 
 def test_image_onehot_encoder()->None:
