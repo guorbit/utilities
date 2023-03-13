@@ -1,5 +1,40 @@
 import numpy as np
 import tensorflow as tf
+from dataclasses import dataclass
+from typing import Callable
+
+
+@dataclass
+class PreprocessingQueue:
+    """
+    object to initialize a preprocessing queue
+
+    Parameters:
+    ----------
+    queue (list): list of functions to be applied
+
+    Returns:
+    -------
+    None
+    """
+    queue: list[Callable]
+    arguments: list[dict]
+
+
+    def update_seed(self, seed):
+        """
+        Changes the seed of the queue
+
+        Parameters:
+        ----------
+        seed (int): seed to be changed to
+
+        Returns:
+        -------
+        None
+        """
+        for i in self.arguments:
+            i["seed"] = seed
 
 
 def onehot_encode(masks, image_size, num_classes):
@@ -20,7 +55,7 @@ def onehot_encode(masks, image_size, num_classes):
     return encoded
 
 
-def augmentation_pipeline(image, mask, input_size, channels=3, seed=0):
+def augmentation_pipeline(image, mask, input_size,image_queue:PreprocessingQueue,mask_queue:PreprocessingQueue, channels=3):
     """
     Applies augmentation pipeline to the image and mask
     Parameters:
@@ -33,19 +68,11 @@ def augmentation_pipeline(image, mask, input_size, channels=3, seed=0):
     image (tf tensor): augmented image
     mask (tf tensor): augmented mask
     """
-    input_size = (input_size[0], input_size[1], channels)
-    image = tf.image.random_flip_left_right(image, seed=seed)
-    image = tf.image.random_flip_up_down(image, seed=seed)
-    image = tf.image.random_brightness(image, 0.2, seed=seed)
-    image = tf.image.random_contrast(image, 0.8, 1.2, seed=seed)
-    image = tf.image.random_saturation(image, 0.8, 1.2, seed=seed)
-    image = tf.image.random_hue(image, 0.2, seed=seed)
-    mask = tf.image.random_flip_left_right(mask, seed=seed)
-    mask = tf.image.random_flip_up_down(mask, seed=seed)
+
+
     return image, mask
 
 
 def flatten(image, input_size, channels=1):
     #!not tested
-
     return tf.reshape(image, (input_size[0] * input_size[1], channels))

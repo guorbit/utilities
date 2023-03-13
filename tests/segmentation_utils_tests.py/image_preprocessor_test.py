@@ -22,4 +22,37 @@ def test_image_onehot_encoder()->None:
     assert one_hot_image.shape == (1, image_size[0]//2 * image_size[1]//2, n_classes)
     assert np.array_equal(one_hot_image,onehot_test)
 
-    
+def test_image_augmentation_pipeline()->None:
+    # predifining input variables
+    image = np.zeros((512,512,3))
+    mask = np.zeros((256*256,1))
+    input_size = (512,512)
+    seed = 0
+
+    # createing dummy queues
+    image_queue = ImagePreprocessor.PreprocessingQueue(queue=[lambda x: x],arguments=dict())
+    mask_queue = ImagePreprocessor.PreprocessingQueue(queue=[lambda x: x],arguments=dict())
+
+    image_new, mask_new = ImagePreprocessor.augmentation_pipeline(image,mask,input_size,image_queue,mask_queue)
+
+    assert image_new.shape == (512,512,3)
+    assert mask_new.shape == (256*256,1)
+
+
+def test_processing_queue()->None:
+    # createing dummy queues
+    image_queue = ImagePreprocessor.PreprocessingQueue(queue=[lambda seed: seed],arguments=[dict(seed=1)])
+    mask_queue = ImagePreprocessor.PreprocessingQueue(queue=[lambda seed: seed],arguments=[dict(seed=1)])
+
+    # changing the seed
+    new_seed = 5
+    image_queue.update_seed(new_seed)
+
+    assert image_queue.arguments[0]["seed"] == new_seed
+    assert image_queue.queue[0](**image_queue.arguments[0]) == new_seed
+
+
+
+
+
+
