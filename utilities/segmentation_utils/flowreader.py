@@ -1,4 +1,5 @@
 import os
+import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
 from utilities.segmentation_utils.image_encoder import ImagePreprocessor
 #! important: as the I have no clue how we can mount this repo as a package the import is relative to the working directory
@@ -14,6 +15,7 @@ class FlowGenerator:
         num_classes,
         shuffle=True,
         batch_size=32,
+        seed=909,
     ):
         """
         Initializes the flow generator object
@@ -38,6 +40,7 @@ class FlowGenerator:
         self.image_size = image_size
         self.num_classes = num_classes
         self.shuffle = shuffle
+        self.seed = seed
         self.__make_generator()
         print("Reading images from: ", self.image_path)
 
@@ -70,14 +73,14 @@ class FlowGenerator:
         None
 
         """
-        seed = 909
+        
         image_datagen = ImageDataGenerator()
         mask_datagen = ImageDataGenerator()
 
         image_generator = image_datagen.flow_from_directory(
             self.image_path,
             class_mode=None,
-            seed=seed,
+            seed=self.seed,
             batch_size=self.batch_size,
             target_size=self.image_size,
         )
@@ -85,7 +88,7 @@ class FlowGenerator:
         mask_generator = mask_datagen.flow_from_directory(
             self.mask_path,
             class_mode=None,
-            seed=seed,
+            seed=self.seed,
             batch_size=self.batch_size,
             target_size=(self.image_size[0] // 2 * self.image_size[1] // 2, 1),
             color_mode="grayscale",
@@ -123,8 +126,9 @@ class FlowGenerator:
         """
         for (img, mask) in generator_zip:
             for i in range(len(img)):
+                image_seed = np.random.randint(0, 100000)
                 img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
-                    img[i], mask[i], self.image_size
+                    img[i], mask[i], self.image_size,seed=image_seed
                 )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.image_size, self.num_classes

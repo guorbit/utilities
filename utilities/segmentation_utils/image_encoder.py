@@ -25,7 +25,7 @@ class ImagePreprocessor:
         return encoded
 
     @classmethod
-    def augmentation_pipeline(self, image, mask, input_size, channels=3):
+    def augmentation_pipeline(self, image, mask, input_size, channels=3,seed=0):
         """
         Applies augmentation pipeline to the image and mask
 
@@ -43,7 +43,6 @@ class ImagePreprocessor:
 
         input_size = (input_size[0], input_size[1], channels)
 
-        seed = np.random.randint(0, 100000)
 
         image = tf.image.random_flip_left_right(image, seed=seed)
         image = tf.image.random_flip_up_down(image, seed=seed)
