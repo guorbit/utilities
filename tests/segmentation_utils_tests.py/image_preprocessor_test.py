@@ -40,14 +40,14 @@ def test_image_augmentation_pipeline() -> None:
 
     # createing dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda x,y,seed: x], arguments=[{"y": 1}]
+        queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
     )
     mask_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda x,y,seed: x], arguments=[{"y": 1}]
+        queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
     )
 
     image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
-        image, mask, input_size,output_size, image_queue, mask_queue
+        image, mask, input_size, output_size, image_queue, mask_queue
     )
 
     assert image_new.shape == (512, 512, 3)
@@ -83,7 +83,8 @@ def test_generate_default_queue() -> None:
     assert image_queue.get_queue_length() == 6
     assert mask_queue.get_queue_length() == 2
 
-def test_flatten()->None:
-    image = np.zeros((512,512,3))
-    image = ImagePreprocessor.flatten(image,(512,512),3)
-    assert image.shape == (512*512,3)
+
+def test_flatten() -> None:
+    image = np.zeros((512, 512, 3))
+    image = ImagePreprocessor.flatten(image, (512, 512), 3)
+    assert image.shape == (512 * 512, 3)
