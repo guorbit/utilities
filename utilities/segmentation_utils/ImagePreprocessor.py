@@ -113,7 +113,7 @@ def onehot_encode(masks, image_size, num_classes):
     return encoded
 
 
-def augmentation_pipeline(image, mask, input_size,image_queue:PreprocessingQueue = None,mask_queue:PreprocessingQueue = None, channels=3,seed = 0):
+def augmentation_pipeline(image, mask, input_size,output_size,image_queue:PreprocessingQueue = None,mask_queue:PreprocessingQueue = None, channels=3,seed = 0):
     """
     Applies augmentation pipeline to the image and mask
     If no queue is passed a default processing queue is created
@@ -123,6 +123,7 @@ def augmentation_pipeline(image, mask, input_size,image_queue:PreprocessingQueue
     image (tf tensor): image to be augmented
     mask (tf tensor): mask to be augmented
     input_size (tuple): size of the input image
+    output_size (tuple): size of the output image
 
     Keyword Arguments:
     -----------------
@@ -141,7 +142,10 @@ def augmentation_pipeline(image, mask, input_size,image_queue:PreprocessingQueue
     """
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
-    
+
+    #reshapes masks, such that transforamtions work properly
+    mask = tf.reshape(mask, output_size)
+
     if image_queue == None and mask_queue == None:
         image_queue, mask_queue = generate_default_queue()
     elif image_queue == None or mask_queue == None:
@@ -153,9 +157,26 @@ def augmentation_pipeline(image, mask, input_size,image_queue:PreprocessingQueue
     for i,fun in enumerate(mask_queue.queue):
         mask = fun(mask, **mask_queue.arguments[i])
 
+    #flattens masks out to the correct output shape
+    mask = flatten(mask, output_size, channels=1)
     return image, mask
 
 
 def flatten(image, input_size, channels=1):
-    #!not tested
+    """
+    Flattens an input image, with reserving the channels
+
+    Parameters:
+    ----------
+    image (tf tensor): image to be flattened
+    input_size (tuple): size of the input image
+    
+    Keyword Arguments:
+    -----------------
+    channels (int): number of channels in the image
+
+    Returns:
+    -------
+    image (tf tensor): flattened image
+    """
     return tf.reshape(image, (input_size[0] * input_size[1], channels))
