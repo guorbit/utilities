@@ -22,6 +22,7 @@ def test_flow_generator() -> None:
         "flow_from_directory",
         flow_from_directory_mock,
     )
+    patch.setattr(FlowGenerator, "preprocess", lambda self,x: x)
     # mock an imagedatagenerator from keras
 
 
