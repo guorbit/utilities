@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from dataclasses import dataclass
-from typing import Callable
+from typing import Callable,Dict
 
 
 @dataclass
@@ -18,8 +18,7 @@ class PreprocessingQueue:
     None
     """
     queue: list[Callable]
-    arguments: list[dict]
-
+    arguments: list[Dict]
 
     def update_seed(self, seed):
         """
@@ -35,6 +34,65 @@ class PreprocessingQueue:
         """
         for i in self.arguments:
             i["seed"] = seed
+
+    def get_queue_length(self):
+        """
+        Returns the length of the queue
+
+        Parameters:
+        ----------
+        None
+
+        Returns:
+        -------
+        int: length of the queue
+        """
+        return len(self.queue)
+    
+    
+
+
+def generate_default_queue(seed = 0):
+    """
+    Generates the default processing queue
+
+    Parameters:
+    ----------
+    None
+
+    Returns:
+    -------
+    PreprocessingQueue: default queue
+    """
+    image_queue = PreprocessingQueue(
+        queue=[
+            tf.image.random_flip_left_right,
+            tf.image.random_flip_up_down,
+            tf.image.random_brightness,
+            tf.image.random_contrast,
+            tf.image.random_saturation,
+            tf.image.random_hue,
+        ],
+        arguments=[
+            {"seed": seed},
+            {"seed": seed},
+            {"max_delta": 0.2, "seed": seed},
+            {"lower": 0.8, "upper": 1.2, "seed": seed},
+            {"lower": 0.8, "upper": 1.2, "seed": seed},
+            {"max_delta": 0.2, "seed": seed},
+        ],
+    )
+    mask_queue = PreprocessingQueue(
+        queue=[
+            tf.image.random_flip_left_right,
+            tf.image.random_flip_up_down,
+        ],
+        arguments=[
+            {"seed": seed},
+            {"seed": seed},
+        ],
+    )
+    return image_queue,mask_queue
 
 
 def onehot_encode(masks, image_size, num_classes):
@@ -55,20 +113,45 @@ def onehot_encode(masks, image_size, num_classes):
     return encoded
 
 
-def augmentation_pipeline(image, mask, input_size,image_queue:PreprocessingQueue,mask_queue:PreprocessingQueue, channels=3):
+def augmentation_pipeline(image, mask, input_size,image_queue:PreprocessingQueue = None,mask_queue:PreprocessingQueue = None, channels=3,seed = 0):
     """
     Applies augmentation pipeline to the image and mask
+    If no queue is passed a default processing queue is created
+
     Parameters:
     ----------
     image (tf tensor): image to be augmented
     mask (tf tensor): mask to be augmented
     input_size (tuple): size of the input image
+
+    Keyword Arguments:
+    -----------------
+    image_queue (PreprocessingQueue): queue of image processing functions
+    mask_queue (PreprocessingQueue): queue of mask processing functions
+    channels (int): number of channels in the image
+
+    Raises:
+    ------
+    ValueError: if only one queue is passed
+
     Returns:
     -------
     image (tf tensor): augmented image
     mask (tf tensor): augmented mask
     """
+    image_queue.update_seed(seed)
+    mask_queue.update_seed(seed)
+    
+    if image_queue == None and mask_queue == None:
+        image_queue, mask_queue = generate_default_queue()
+    elif image_queue == None or mask_queue == None:
+        raise ValueError("Both queues must be passed or none")
 
+    for i,fun in enumerate(image_queue.queue):
+        image = fun(image, **image_queue.arguments[i])
+
+    for i,fun in enumerate(mask_queue.queue):
+        mask = fun(mask, **mask_queue.arguments[i])
 
     return image, mask
 
