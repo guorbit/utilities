@@ -5,7 +5,7 @@ from utilities.segmentation_utils import ImagePreprocessor
 from pytest import MonkeyPatch
 import numpy as np
 
-
+# mock implementations
 def flow_from_directory_mock(*args, **kwargs):
     channels = 3
     if "color_mode" in kwargs and kwargs["color_mode"] == "grayscale":
@@ -29,7 +29,7 @@ generator_args = {
 mock_onehot_fn = lambda x, y, z: np.rollaxis(np.array([x for i in range(z)]), 0, 3)
 mock_augmentation_fn = lambda x, y, z, a, b: (x, y)
 
-
+# tests
 def test_makes_flow_generator() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -53,6 +53,7 @@ def test_flow_generator_with_preprocess() -> None:
         "flow_from_directory",
         flow_from_directory_mock,
     )
+    
     # mock external dependencies
     patch.setattr(ImagePreprocessor, "augmentation_pipeline", mock_augmentation_fn)
     patch.setattr(
@@ -94,6 +95,7 @@ def test_get_dataset_size() -> None:
 
 def test_get_generator() -> None:
     patch = MonkeyPatch()
+
     # mock external dependencies
     patch.setattr(ImagePreprocessor, "augmentation_pipeline", mock_augmentation_fn)
     patch.setattr(
@@ -101,9 +103,11 @@ def test_get_generator() -> None:
         "onehot_encode",
         mock_onehot_fn,
     )
+
     # create a flow generator
     flow_generator = FlowGenerator(**generator_args)
     generator = flow_generator.get_generator()
-    assert generator
+
+    assert generator != None
     patch.undo()
     patch.undo()
