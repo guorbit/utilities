@@ -1,12 +1,21 @@
+"""
+FlowGenerator is a wrapper around the keras ImageDataGenerator class.
+"""
+
 import os
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
 from utilities.segmentation_utils import ImagePreprocessor
 
-#! important: as the I have no clue how we can mount this repo as a package the import is relative to the working directory
-
 
 class FlowGenerator:
+    """
+    FlowGenerator is a wrapper around the keras ImageDataGenerator class.
+    It can be used to read in images for semantic segmentation.
+    Additionally, the reader can apply augmentation on the images,
+    and one-hot encode them on the fly.
+    """
+
     def __init__(
         self,
         image_path,
@@ -19,7 +28,10 @@ class FlowGenerator:
         seed=909,
     ):
         """
-        Initializes the flow generator object, which can be used to read in images for semantic segmentation. Additionally, the reader can apply augmentation on the images, and one-hot encode them on the fly.
+        Initializes the flow generator object,
+        which can be used to read in images for semantic segmentation.
+        Additionally, the reader can apply augmentation on the images,
+        and one-hot encode them on the fly.
 
         Parameters:
         ----------
@@ -27,7 +39,8 @@ class FlowGenerator:
         mask (string): path to the mask directory
         batch_size (int): batch size
         image_size (tuple): image size
-        output_size (tuple): output size #! Note: in case the output is a column vector it has to be in the shape (x, 1)
+        output_size (tuple): output size
+        #! Note: in case the output is a column vector it has to be in the shape (x, 1)
         num_classes (int): number of classes
 
         Keyword Arguments:
@@ -46,10 +59,9 @@ class FlowGenerator:
         None
         """
 
-        # TODO: needs testing
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
-        elif output_size[1] != 1 and output_size[0] != output_size[1]:
+        if output_size[1] != 1 and output_size[0] != output_size[1]:
             raise ValueError(
                 "The output size has to be a square matrix or a column vector"
             )

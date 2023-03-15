@@ -134,4 +134,5 @@ dmypy.json
 archive.lnk
 
 colab_notebook.ipynb
+/.vscode/
 
