@@ -12,6 +12,7 @@ class FlowGenerator:
         image_path,
         mask_path,
         image_size,
+        output_size,
         num_classes,
         shuffle=True,
         batch_size=32,
@@ -26,6 +27,9 @@ class FlowGenerator:
         mask (string): path to the mask directory
         batch_size (int): batch size
         image_size (tuple): image size
+        output_size (tuple): output size #! Note: in case the output is a column vector it has to be in the shape (x, 1)
+        #TODO: check if parameter format is correct
+        
         num_classes (int): number of classes
         shuffle (bool): whether to shuffle the dataset or not
 
@@ -34,10 +38,16 @@ class FlowGenerator:
         None
         """
 
+        if len(output_size)!=2:
+            raise ValueError("The output size has to be a tuple of length 2")
+        elif output_size[1] != 1 and output_size[0] != output_size[1]:
+            raise ValueError("The output size has to be a square matrix or a column vector")
+
         self.image_path = image_path
         self.mask_path = mask_path
         self.batch_size = batch_size
         self.image_size = image_size
+        self.output_size = output_size
         self.num_classes = num_classes
         self.shuffle = shuffle
         self.seed = seed
@@ -90,7 +100,7 @@ class FlowGenerator:
             class_mode=None,
             seed=self.seed,
             batch_size=self.batch_size,
-            target_size=(self.image_size[0] // 2 * self.image_size[1] // 2, 1),
+            target_size=self.output_size,
             color_mode="grayscale",
         )
 
@@ -129,9 +139,9 @@ class FlowGenerator:
             for i in range(len(img)):
                 image_seed = np.random.randint(0, 100000)
                 img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
-                    img[i], mask[i], self.image_size, seed=image_seed
+                    img[i], mask[i], self.image_size,self.output_size, seed=image_seed
                 )
             mask = ImagePreprocessor.onehot_encode(
-                mask, self.image_size, self.num_classes
+                mask, self.output_size, self.num_classes
             )
             yield (img, mask)
