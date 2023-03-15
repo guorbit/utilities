@@ -89,7 +89,7 @@ def test_image_augmentation_pipeline_error_raised()-> None:
             image, mask, input_size, output_size, image_queue
         )
         assert False
-    except:
+    except ValueError:
         assert True
 
 

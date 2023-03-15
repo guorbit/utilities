@@ -45,6 +45,46 @@ def test_makes_flow_generator() -> None:
     pass
 
 
+def test_makes_flow_generator_wrong_shape() -> None:
+    try:
+        patch = MonkeyPatch()
+        # mock an imagedatagenerator from keras
+        mock_image_datagen = patch.setattr(
+            ImageDataGenerator,
+            "flow_from_directory",
+            flow_from_directory_mock,
+        )
+        patch.setattr(FlowGenerator, "preprocess", lambda self, x: x)
+
+        fail_generator = generator_args.copy()
+        # create a flow generator
+        fail_generator["output_size"] = (256, 256, 256)
+        flow_generator = FlowGenerator(**fail_generator)
+        assert False
+    except ValueError:
+        assert True
+
+
+def test_makes_flow_generator_wrong_dimension() -> None:
+    try:
+        patch = MonkeyPatch()
+        # mock an imagedatagenerator from keras
+        mock_image_datagen = patch.setattr(
+            ImageDataGenerator,
+            "flow_from_directory",
+            flow_from_directory_mock,
+        )
+        patch.setattr(FlowGenerator, "preprocess", lambda self, x: x)
+
+        fail_generator = generator_args.copy()
+        # create a flow generator
+        fail_generator["output_size"] = (256 * 256,2)
+        flow_generator = FlowGenerator(**fail_generator)
+        assert False
+    except ValueError:
+        assert True
+
+
 def test_flow_generator_with_preprocess() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -53,7 +93,7 @@ def test_flow_generator_with_preprocess() -> None:
         "flow_from_directory",
         flow_from_directory_mock,
     )
-    
+
     # mock external dependencies
     patch.setattr(ImagePreprocessor, "augmentation_pipeline", mock_augmentation_fn)
     patch.setattr(
