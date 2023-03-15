@@ -156,19 +156,21 @@ def augmentation_pipeline(
     image (tf tensor): augmented image
     mask (tf tensor): augmented mask
     """
-    image_queue.update_seed(seed)
-    mask_queue.update_seed(seed)
-
 
     # reshapes masks, such that transforamtions work properly
     if output_size[1] == 1:
         mask = tf.reshape(mask, output_size)
 
     if image_queue == None and mask_queue == None:
+        #!Possibly in the wrong place as it has to be regenerated every time
         image_queue, mask_queue = generate_default_queue()
+        print("No queue passed, using default queue")
+        
     elif image_queue == None or mask_queue == None:
         raise ValueError("Both queues must be passed or none")
-
+    
+    image_queue.update_seed(seed)
+    mask_queue.update_seed(seed)
     for i, fun in enumerate(image_queue.queue):
         image = fun(image, **image_queue.arguments[i])
 

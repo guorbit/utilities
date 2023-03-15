@@ -15,7 +15,7 @@ class FlowGenerator:
         output_size,
         num_classes,
         shuffle=True,
-        batch_size=32,
+        batch_size=2,
         seed=909,
     ):
         """
@@ -38,6 +38,7 @@ class FlowGenerator:
         None
         """
 
+        #TODO: needs testing
         if len(output_size)!=2:
             raise ValueError("The output size has to be a tuple of length 2")
         elif output_size[1] != 1 and output_size[0] != output_size[1]:
@@ -53,6 +54,8 @@ class FlowGenerator:
         self.seed = seed
         self.__make_generator()
         print("Reading images from: ", self.image_path)
+
+
 
     def get_dataset_size(self):
         """
@@ -133,7 +136,7 @@ class FlowGenerator:
 
         Returns:
         -------
-        generator: generator batch
+        a batch (tuple): generator batch of image and mask
         """
         for (img, mask) in generator_zip:
             for i in range(len(img)):
