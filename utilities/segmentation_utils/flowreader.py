@@ -138,6 +138,7 @@ class FlowGenerator:
         -------
         a batch (tuple): generator batch of image and mask
         """
+        #TODO: random factor seed
         for (img, mask) in generator_zip:
             for i in range(len(img)):
                 image_seed = np.random.randint(0, 100000)
