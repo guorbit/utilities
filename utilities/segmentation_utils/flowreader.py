@@ -19,7 +19,7 @@ class FlowGenerator:
         seed=909,
     ):
         """
-        Initializes the flow generator object
+        Initializes the flow generator object, which can be used to read in images for semantic segmentation. Additionally, the reader can apply augmentation on the images, and one-hot encode them on the fly.
 
         Parameters:
         ----------
@@ -30,7 +30,8 @@ class FlowGenerator:
         output_size (tuple): output size #! Note: in case the output is a column vector it has to be in the shape (x, 1)
         num_classes (int): number of classes
 
-        #TODO: check if parameter format is correct
+        Keyword Arguments:
+        -----------------
         shuffle (bool): whether to shuffle the dataset or not
         batch_size (int): batch size
         seed (int): seed for flow from directory
@@ -45,11 +46,13 @@ class FlowGenerator:
         None
         """
 
-        #TODO: needs testing
-        if len(output_size)!=2:
+        # TODO: needs testing
+        if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
         elif output_size[1] != 1 and output_size[0] != output_size[1]:
-            raise ValueError("The output size has to be a square matrix or a column vector")
+            raise ValueError(
+                "The output size has to be a square matrix or a column vector"
+            )
 
         self.image_path = image_path
         self.mask_path = mask_path
@@ -61,8 +64,6 @@ class FlowGenerator:
         self.seed = seed
         self.__make_generator()
         print("Reading images from: ", self.image_path)
-
-
 
     def get_dataset_size(self):
         """
@@ -132,7 +133,7 @@ class FlowGenerator:
         """
         return self.train_generator
 
-    def preprocess(self, generator_zip,state = None):
+    def preprocess(self, generator_zip, state=None):
         """
         Preprocessor function encapsulates both the image, and mask generator objects.
         Augments the images and masks and onehot encodes the masks
@@ -147,7 +148,7 @@ class FlowGenerator:
         """
         for (img, mask) in generator_zip:
             for i in range(len(img)):
-                #random state for reproducibility
+                # random state for reproducibility
                 if state is None:
                     image_seed = np.random.randint(0, 100000)
                 else:
@@ -155,7 +156,7 @@ class FlowGenerator:
                     image_seed = state.randint(0, 100000)
 
                 img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
-                    img[i], mask[i], self.image_size,self.output_size, seed=image_seed
+                    img[i], mask[i], self.image_size, self.output_size, seed=image_seed
                 )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.output_size, self.num_classes

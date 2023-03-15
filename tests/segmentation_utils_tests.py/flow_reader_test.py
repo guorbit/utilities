@@ -78,7 +78,7 @@ def test_makes_flow_generator_wrong_dimension() -> None:
 
         fail_generator = generator_args.copy()
         # create a flow generator
-        fail_generator["output_size"] = (256 * 256,2)
+        fail_generator["output_size"] = (256 * 256, 2)
         flow_generator = FlowGenerator(**fail_generator)
         assert False
     except ValueError:
