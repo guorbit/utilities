@@ -28,10 +28,17 @@ class FlowGenerator:
         batch_size (int): batch size
         image_size (tuple): image size
         output_size (tuple): output size #! Note: in case the output is a column vector it has to be in the shape (x, 1)
-        #TODO: check if parameter format is correct
-        
         num_classes (int): number of classes
+
+        #TODO: check if parameter format is correct
         shuffle (bool): whether to shuffle the dataset or not
+        batch_size (int): batch size
+        seed (int): seed for flow from directory
+
+        Raises:
+        ------
+        ValueError: if the output size is not a tuple of length 2
+        ValueError: if the output size is not a square matrix or a column vector
 
         Returns:
         -------
@@ -125,7 +132,7 @@ class FlowGenerator:
         """
         return self.train_generator
 
-    def preprocess(self, generator_zip):
+    def preprocess(self, generator_zip,state = None):
         """
         Preprocessor function encapsulates both the image, and mask generator objects.
         Augments the images and masks and onehot encodes the masks
@@ -138,10 +145,15 @@ class FlowGenerator:
         -------
         a batch (tuple): generator batch of image and mask
         """
-        #TODO: random factor seed
         for (img, mask) in generator_zip:
             for i in range(len(img)):
-                image_seed = np.random.randint(0, 100000)
+                #random state for reproducibility
+                if state is None:
+                    image_seed = np.random.randint(0, 100000)
+                else:
+                    state = np.random.RandomState(state)
+                    image_seed = state.randint(0, 100000)
+
                 img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
                     img[i], mask[i], self.image_size,self.output_size, seed=image_seed
                 )
