@@ -40,12 +40,8 @@ jobs:
     - name: Build documentation
       run: |
         cd docs
-      
         sphinx-apidoc -o . ..
         make html
-        with:
-          name: documentation
-          path: ./docs
         
   deploy:
     needs: build
@@ -54,10 +50,17 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout folder
+        run: |
+          cd docs
+          ls
+    
       - name: Checkout
         uses: actions/checkout@v3
       - name: Setup Pages
         uses: actions/configure-pages@v3
+      
+        
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
