@@ -9,13 +9,16 @@ import sys
 sys.path.insert(0, os.path.abspath('..'))
 
 
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'test'
-copyright = '2023, test'
-author = 'test'
-release = '1.0.0'
+
+
+project = 'GU Orbit Software Utilities'
+copyright = '2023, GU Orbit Software Team'
+author = 'GU Orbit Software Team'
+release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
