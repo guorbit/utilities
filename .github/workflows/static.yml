@@ -40,8 +40,10 @@ jobs:
     - name: Build documentation
       run: |
         cd docs
+      
         sphinx-apidoc -o . ..
         make html
+        ls
         
   deploy:
     needs: build
