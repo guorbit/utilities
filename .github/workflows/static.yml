@@ -41,7 +41,9 @@ jobs:
     - name: Build documentation
       run: |
         cd docs
-        sphinx-apidoc -e -M -o . ..
+
+
+        sphinx-apidoc -e -M --force -o . ..
         make html
     - name: Upload build data
       uses: actions/upload-artifact@v3
