@@ -33,30 +33,26 @@ class FlowGenerator:
         Additionally, the reader can apply augmentation on the images,
         and one-hot encode them on the fly.
 
-        Parameters:
+        Parameters
         ----------
-        image (string): path to the image directory
-        mask (string): path to the mask directory
-        batch_size (int): batch size
-        image_size (tuple): image size
-        output_size (tuple): output size
+        :string image: path to the image directory
+        :string mask: path to the mask directory
+        :int batch_size: batch size
+        :tuple image_size: image size
+        :tuple output_size: output size
         #! Note: in case the output is a column vector it has to be in the shape (x, 1)
-        num_classes (int): number of classes
+        :int num_classes: number of classes
 
-        Keyword Arguments:
+        Keyword Arguments
         -----------------
-        shuffle (bool): whether to shuffle the dataset or not
-        batch_size (int): batch size
-        seed (int): seed for flow from directory
+        :bool shuffle: whether to shuffle the dataset or not
+        :int batch_size: batch size
+        :int seed: seed for flow from directory
 
-        Raises:
+        Raises
         ------
         ValueError: if the output size is not a tuple of length 2
         ValueError: if the output size is not a square matrix or a column vector
-
-        Returns:
-        -------
-        None
         """
 
         if len(output_size) != 2:
@@ -81,13 +77,10 @@ class FlowGenerator:
         """
         Returns the length of the dataset
 
-        Parameters:
-        ----------
-        None
-
-        Returns:
+        Returns
         -------
-        int: length of the dataset
+        :returns: length of the dataset
+        :rtype: int
 
         """
 
@@ -96,15 +89,6 @@ class FlowGenerator:
     def __make_generator(self):
         """
         Creates the generator
-
-        Parameters:
-        ----------
-        None
-
-        Returns:
-        -------
-        None
-
         """
 
         image_datagen = ImageDataGenerator()
@@ -134,13 +118,10 @@ class FlowGenerator:
         """
         Returns the generator object
 
-        Parameters:
-        ----------
-        None
-
-        Returns:
+        Returns
         -------
-        generator: generator object
+        :return: generator object
+        :rtype: generator
 
         """
         return self.train_generator
@@ -150,13 +131,15 @@ class FlowGenerator:
         Preprocessor function encapsulates both the image, and mask generator objects.
         Augments the images and masks and onehot encodes the masks
 
-        Parameters:
+        Parameters
         ----------
-        generator_zip (tuple): tuple of image and mask generator
+        :tuple generator_zip: tuple of image and mask generator
+        :int, optional state: random state for reproducibility, defaults to None
 
-        Returns:
+        Returns
         -------
-        a batch (tuple): generator batch of image and mask
+        :return: generator batch of image and mask
+        :rtype: batch(tuple)
         """
         for (img, mask) in generator_zip:
             for i in range(len(img)):

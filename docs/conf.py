@@ -22,7 +22,7 @@ release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
-
+add_module_names = False
 extensions = ['sphinx.ext.todo', 'sphinx.ext.viewcode', 'sphinx.ext.autodoc']
 
 templates_path = ['_templates']
@@ -30,8 +30,15 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
 
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'insegel'
-html_static_path = ['_static']
+#insegel theme
+#furo theme
+
+html_theme = 'furo'
+
+
+html_static_path = ['style']
+html_css_files   = ['custom.css']

@@ -9,13 +9,10 @@ class PreprocessingQueue:
     """
     object to initialize a preprocessing queue
 
-    Parameters:
+    Parameters
     ----------
-    queue (list): list of functions to be applied
-
-    Returns:
-    -------
-    None
+    :queue list: list of functions to be applied
+    :arguments list[dict]: list of arguments to be passed to the functions
     """
 
     queue: list[Callable]
@@ -25,13 +22,9 @@ class PreprocessingQueue:
         """
         Changes the seed of the queue
 
-        Parameters:
+        Parameters
         ----------
-        seed (int): seed to be changed to
-
-        Returns:
-        -------
-        None
+        :seed int: seed to be changed to
         """
         for i in self.arguments:
             i["seed"] = seed
@@ -40,13 +33,10 @@ class PreprocessingQueue:
         """
         Returns the length of the queue
 
-        Parameters:
-        ----------
-        None
-
-        Returns:
+        Returns
         -------
-        int: length of the queue
+        :return: length of the queue
+        :rtype: int
         """
         return len(self.queue)
 
@@ -55,17 +45,13 @@ def generate_default_queue(seed=0):
     """
     Generates the default processing queue
 
-    Parameters:
-    ----------
-    None
-
-    Keyword Arguments:
+    Keyword Arguments
     -----------------
-    seed (int): seed to be used for the random functions
+    :seed int: seed to be used for the random functions
 
-    Returns:
+    Returns
     -------
-    PreprocessingQueue: default queue
+    :return PreprocessingQueue: default queue
     """
     image_queue = PreprocessingQueue(
         queue=[
@@ -100,17 +86,17 @@ def generate_default_queue(seed=0):
 
 def onehot_encode(masks, output_size, num_classes):
     """
-    Onehot encodes the images coming from the image generator object
-    Parameters:
-    ----------
-    masks (tf tensor): masks to be onehot encoded
-    output_size (tuple): size of the output image, it is specified as (height, width) #!Note that for a column vector the width is 1
-    num_classes (int): number of classes in the mask, to be onehot encoded
+    Function that one-hot encodes masks
 
-    Returns:
+    :batch(tf.Tensor) masks: Masks to be encoded
+    :tuple(int, int) output_size: Output size of the masks
+    :int num_classes: Number of classes in the masks
+    
+    Returns
     -------
-    encoded (tf tensor): onehot encoded masks
-    """
+    :return: Encoded masks
+    :rtype: batch(tf.Tensor)
+    """    
     encoded = np.zeros(
         (masks.shape[0], output_size[0] * output_size[1] , num_classes)
     )
@@ -130,32 +116,33 @@ def augmentation_pipeline(
     seed=0,
 ):
     """
-    Applies augmentation pipeline to the image and mask
-    If no queue is passed a default processing queue is created
+    Function that can execute a set of predifined augmentation functions
+    stored in a PreprocessingQueue object. It augments both the image and the mask
+    with the same functions and arguments.
 
-    Parameters:
+    Parameters
     ----------
-    image (tf tensor): image to be augmented
-    mask (tf tensor): mask to be augmented
-    input_size (tuple): size of the input image
-    output_size (tuple): size of the output image
-
-    Keyword Arguments:
+    :tf.Tensor image: The image to be processed
+    :tf.Tensor mask: The mask to be processed
+    :tuple(int, int) input_size: Input size of the image
+    :tuple(int, int) output_size: Output size of the image
+ 
+    Keyword Arguments
     -----------------
-    image_queue (PreprocessingQueue): queue of image processing functions
-    mask_queue (PreprocessingQueue): queue of mask processing functions
-    channels (int): number of channels in the image
-    seed (int): seed to be used for the random functions
+    :PreprocessingQueue, optional mask_queue image_queue: Augmentation processing queue for images, defaults to None
+    :PreprocessingQueue, optional mask_queue: Augmentation processing queue for masks, defaults to None
+    :int, optional channels: Number of bands in the image, defaults to 3
+    :int, optional seed: The seed to be used in the pipeline, defaults to 0
 
-    Raises:
+    Raises
     ------
-    ValueError: if only one queue is passed
-
-    Returns:
+    :raises ValueError: If only one of the queues is passed
+    
+    Returns
     -------
-    image (tf tensor): augmented image
-    mask (tf tensor): augmented mask
-    """
+    :return: tuple of the processed image and mask
+    :rtype: tuple(tf.Tensor, tf.Tensor)
+    """        
 
     # reshapes masks, such that transforamtions work properly
     if output_size[1] == 1:
@@ -184,20 +171,21 @@ def augmentation_pipeline(
 
 
 def flatten(image, input_size, channels=1):
-    """
-    Flattens an input image, with reserving the channels
+    """flatten
+    Function that flattens an image preserving the number of channels
 
-    Parameters:
+    Parameters
     ----------
-    image (tf tensor): image to be flattened
-    input_size (tuple): size of the input image
+    :tf.Tensor image: image to be flattened
+    :tuple(int, int) input_size: input size of the image
 
-    Keyword Arguments:
+    Keyword Arguments
     -----------------
-    channels (int): number of channels in the image
-
-    Returns:
+    :int, optional channels: number of chanels to preserve, defaults to 1
+ 
+    Returns
     -------
-    image (tf tensor): flattened image
+    :return: flattened image
+    :rtype: tf.Tensor
     """
     return tf.reshape(image, (input_size[0] * input_size[1], channels))

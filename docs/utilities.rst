@@ -1,6 +1,11 @@
 utilities package
 =================
 
+.. automodule:: utilities
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -12,26 +17,8 @@ Subpackages
 Submodules
 ----------
 
-utilities.image\_cutting module
--------------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. automodule:: utilities.image_cutting
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-utilities.image\_loading module
--------------------------------
-
-.. automodule:: utilities.image_loading
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: utilities
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   utilities.image_cutting
+   utilities.image_loading

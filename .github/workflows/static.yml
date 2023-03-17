@@ -36,11 +36,12 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         pip install -U sphinx
-        pip install insegel
+        pip install furo
+        
     - name: Build documentation
       run: |
         cd docs
-        sphinx-apidoc -o . ..
+        sphinx-apidoc -e -M -o . ..
         make html
     - name: Upload build data
       uses: actions/upload-artifact@v3
