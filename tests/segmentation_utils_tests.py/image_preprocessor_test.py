@@ -61,53 +61,6 @@ def test_image_augmentation_pipeline_column() -> None:
     assert np.array(mask_new).shape == (256 * 256, 1, 1)
 
 
-def test_image_augmentation_pipeline_no_queue() -> None:
-    # predifining input variables
-    image = np.zeros((512, 512, 3))
-    mask = np.zeros((256, 256, 1))
-    image = tf.convert_to_tensor(image)
-    mask = tf.convert_to_tensor(mask)
-
-    input_size = (512, 512)
-    output_size = (256, 256)
-    output_reshape = (256, 256)
-    seed = 0
-
-    image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
-        image, mask, input_size, output_size
-    )
-    image_new = image_new.numpy()
-    mask_new = mask_new.numpy()
-
-    assert image_new.shape == (512, 512, 3)
-    assert mask_new.shape == (256, 256, 1)
-
-
-def test_image_augmentation_pipeline_error_raised() -> None:
-    try:
-        # predifining input variables
-        image = np.zeros((512, 512, 3))
-        mask = np.zeros((256, 256, 1))
-        image = tf.convert_to_tensor(image)
-        mask = tf.convert_to_tensor(mask)
-
-        input_size = (512, 512)
-        output_size = (256, 256)
-        output_reshape = (256, 256)
-        seed = 0
-        # createing dummy queues
-        image_queue = ImagePreprocessor.PreprocessingQueue(
-            queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
-        )
-
-        image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
-            image, mask, input_size, output_size, image_queue=image_queue
-        )
-        assert False
-    except ValueError:
-        assert True
-
-
 def test_image_augmentation_pipeline_squarematrix() -> None:
     # predifining input variables
     image = np.zeros((512, 512, 3))
@@ -179,5 +132,3 @@ def test_flatten() -> None:
     image = image.numpy()
     assert image.shape == (512 * 512, 1, 3)
 
-
-# TODO: add tests for checking if errors are raised when the input is not correct

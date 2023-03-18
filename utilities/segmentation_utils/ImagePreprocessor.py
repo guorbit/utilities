@@ -149,13 +149,7 @@ def augmentation_pipeline(
     if output_size[1] == 1:
         mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
 
-    if image_queue == None and mask_queue == None:
-        #!Possibly in the wrong place as it has to be regenerated every time
-        image_queue, mask_queue = generate_default_queue()
-        # print("No queue passed, using default queue")
 
-    elif image_queue == None or mask_queue == None:
-        raise ValueError("Both queues must be passed or none")
 
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)

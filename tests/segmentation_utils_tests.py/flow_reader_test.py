@@ -1,9 +1,8 @@
 import os
-
 import numpy as np
+import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
 from pytest import MonkeyPatch
-
 from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.flowreader import FlowGenerator
 
@@ -41,11 +40,35 @@ def test_makes_flow_generator() -> None:
         "flow_from_directory",
         flow_from_directory_mock,
     )
-    patch.setattr(FlowGenerator, "preprocess", lambda self, x: x)
-
+    patch.setattr(FlowGenerator, "preprocess", lambda self, x, *args, **kwargs: x)
     # create a flow generator
     flow_generator = FlowGenerator(**generator_args)
     pass
+
+
+def test_makes_flow_generator_with_queue() -> None:
+    patch = MonkeyPatch()
+    # mock an imagedatagenerator from keras
+    mock_image_datagen = patch.setattr(
+        ImageDataGenerator,
+        "flow_from_directory",
+        flow_from_directory_mock,
+    )
+    patch.setattr(FlowGenerator, "preprocess", lambda self, x, *args, **kwargs: x)
+    
+    # create dummy queues
+    image_queue = ImagePreprocessor.PreprocessingQueue([lambda x, y, seed: x], [{"y": 1}])
+    mask_queue = ImagePreprocessor.PreprocessingQueue([lambda x, y, seed: x], [{"y": 1}])
+    
+    # create a copy of the generator args
+    new_generator_args = generator_args.copy()
+    new_generator_args["preprocessing_queue_image"] = image_queue
+    new_generator_args["preprocessing_queue_mask"] = mask_queue
+    
+    # create a flow generator
+    flow_generator = FlowGenerator(**new_generator_args)
+
+
 
 
 def test_makes_flow_generator_wrong_shape() -> None:
@@ -57,7 +80,7 @@ def test_makes_flow_generator_wrong_shape() -> None:
             "flow_from_directory",
             flow_from_directory_mock,
         )
-        patch.setattr(FlowGenerator, "preprocess", lambda self, x: x)
+        patch.setattr(FlowGenerator, "preprocess", lambda self, x, *args, **kwargs: x)
 
         fail_generator = generator_args.copy()
         # create a flow generator
@@ -77,7 +100,7 @@ def test_makes_flow_generator_wrong_dimension() -> None:
             "flow_from_directory",
             flow_from_directory_mock,
         )
-        patch.setattr(FlowGenerator, "preprocess", lambda self, x: x)
+        patch.setattr(FlowGenerator, "preprocess", lambda self, x, *args, **kwargs: x)
 
         fail_generator = generator_args.copy()
         # create a flow generator
@@ -154,3 +177,29 @@ def test_get_generator() -> None:
     assert generator != None
     patch.undo()
     patch.undo()
+
+
+def test_reader_error_raised() -> None:
+    try:
+        # predifining input variables
+        image = np.zeros((512, 512, 3))
+        mask = np.zeros((256, 256, 1))
+        image = tf.convert_to_tensor(image)
+        mask = tf.convert_to_tensor(mask)
+
+        input_size = (512, 512)
+        output_size = (256, 256)
+        output_reshape = (256, 256)
+        seed = 0
+        # createing dummy queues
+        image_queue = ImagePreprocessor.PreprocessingQueue(
+            queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
+        )
+
+        # create a flow generator
+        flow_generator = FlowGenerator(
+            preprocessing_queue_image=image_queue, **generator_args
+        )
+        assert False
+    except ValueError:
+        assert True

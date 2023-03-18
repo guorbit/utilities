@@ -19,14 +19,17 @@ class FlowGenerator:
 
     def __init__(
         self,
-        image_path,
-        mask_path,
-        image_size,
-        output_size,
-        num_classes,
-        shuffle=True,
-        batch_size=2,
-        seed=909,
+        image_path: str,
+        mask_path: str,
+        image_size: tuple[int, int],
+        output_size: tuple[int, int],
+        num_classes:int,
+        shuffle:bool=True,
+        batch_size:int=2,
+        seed:int=909,
+        preprocessing_seed:int=None,
+        preprocessing_queue_image:ImagePreprocessor.PreprocessingQueue = None,
+        preprocessing_queue_mask:ImagePreprocessor.PreprocessingQueue = None,
     ):
         """
         Initializes the flow generator object,
@@ -50,6 +53,9 @@ class FlowGenerator:
         :bool shuffle: whether to shuffle the dataset or not
         :int batch_size: batch size
         :int seed: seed for flow from directory
+        :int preprocessing_seed: seed for preprocessing, defaults to None
+        :PreprocessingQueue preprocessing_queue_image: preprocessing queue for images
+        :PreprocessingQueue preprocessing_queue_mask: preprocessing queue for masks
 
         Raises
         ------
@@ -63,7 +69,6 @@ class FlowGenerator:
             raise ValueError(
                 "The output size has to be a square matrix or a column vector"
             )
-        
 
         self.image_path = image_path
         self.mask_path = mask_path
@@ -73,6 +78,9 @@ class FlowGenerator:
         self.num_classes = num_classes
         self.shuffle = shuffle
         self.seed = seed
+        self.preprocessing_queue_image = preprocessing_queue_image
+        self.preprocessing_queue_mask = preprocessing_queue_mask
+        self.preprocessing_seed = preprocessing_seed
         self.__make_generator()
         print("Reading images from: ", self.image_path)
 
@@ -119,9 +127,14 @@ class FlowGenerator:
             target_size=self.output_size,
             color_mode="grayscale",
         )
+        if self.preprocessing_queue_image == None and self.preprocessing_queue_mask == None:
+            #!Possibly in the wrong place as it has to be regenerated every time
+            self.preprocessing_queue_image, self.preprocessing_queue_mask = ImagePreprocessor.generate_default_queue()
+        elif self.preprocessing_queue_image == None or self.preprocessing_queue_mask == None:
+            raise ValueError("Both queues must be passed or none")
 
         self.train_generator = zip(image_generator, mask_generator)
-        self.train_generator = self.preprocess(self.train_generator)
+        self.train_generator = self.preprocess(self.train_generator, self.preprocessing_queue_image, self.preprocessing_queue_mask, self.preprocessing_seed)
 
     def get_generator(self):
         """
@@ -135,7 +148,7 @@ class FlowGenerator:
         """
         return self.train_generator
 
-    def preprocess(self, generator_zip, state=None):
+    def preprocess(self, generator_zip, preprocessing_queue_image, preprocessing_queue_mask,state=None):
         """
         Preprocessor function encapsulates both the image, and mask generator objects.
         Augments the images and masks and onehot encodes the masks
@@ -160,7 +173,14 @@ class FlowGenerator:
                     image_seed = state.randint(0, 100000)
 
                 img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
-                    img[i], mask[i], self.image_size, self.output_size,self.output_reshape, seed=0
+                    img[i],
+                    mask[i],
+                    self.image_size,
+                    self.output_size,
+                    self.output_reshape,
+                    seed=0,
+                    # preprocessing_queue_image=preprocessing_queue_image,
+                    # preprocessing_queue_mask=preprocessing_queue_mask,
                 )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.output_size, self.num_classes
