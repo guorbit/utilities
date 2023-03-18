@@ -179,8 +179,8 @@ class FlowGenerator:
                     self.output_size,
                     self.output_reshape,
                     seed=0,
-                    # preprocessing_queue_image=preprocessing_queue_image,
-                    # preprocessing_queue_mask=preprocessing_queue_mask,
+                    image_queue=preprocessing_queue_image,
+                    mask_queue=preprocessing_queue_mask,
                 )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.output_size, self.num_classes
