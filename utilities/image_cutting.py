@@ -2,7 +2,6 @@ import numpy as np
 from numpy.typing import NDArray
 import os
 import rasterio
-from matplotlib import pyplot as plt
 import pathlib
 from PIL import Image
 from typing import Any
