@@ -3,6 +3,7 @@ FlowGenerator is a wrapper around the keras ImageDataGenerator class.
 """
 
 import os
+import math
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
 from utilities.segmentation_utils import ImagePreprocessor
@@ -41,6 +42,7 @@ class FlowGenerator:
         :tuple image_size: image size
         :tuple output_size: output size
         #! Note: in case the output is a column vector it has to be in the shape (x, 1)
+
         :int num_classes: number of classes
 
         Keyword Arguments
@@ -61,6 +63,7 @@ class FlowGenerator:
             raise ValueError(
                 "The output size has to be a square matrix or a column vector"
             )
+        
 
         self.image_path = image_path
         self.mask_path = mask_path
@@ -93,6 +96,12 @@ class FlowGenerator:
 
         image_datagen = ImageDataGenerator()
         mask_datagen = ImageDataGenerator()
+
+        if self.output_size[1] == 1:
+            # only enters if the output is a column vector
+            # such no need to define it otherwise
+            dimension = math.sqrt(self.output_size[0])
+            self.output_reshape = (int(dimension), int(dimension))
 
         image_generator = image_datagen.flow_from_directory(
             self.image_path,
@@ -151,7 +160,7 @@ class FlowGenerator:
                     image_seed = state.randint(0, 100000)
 
                 img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
-                    img[i], mask[i], self.image_size, self.output_size, seed=image_seed
+                    img[i], mask[i], self.image_size, self.output_size,self.output_reshape, seed=0
                 )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.output_size, self.num_classes

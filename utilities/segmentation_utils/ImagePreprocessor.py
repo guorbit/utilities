@@ -110,6 +110,7 @@ def augmentation_pipeline(
     mask,
     input_size,
     output_size,
+    output_reshape,
     image_queue: PreprocessingQueue = None,
     mask_queue: PreprocessingQueue = None,
     channels=3,
@@ -126,6 +127,7 @@ def augmentation_pipeline(
     :tf.Tensor mask: The mask to be processed
     :tuple(int, int) input_size: Input size of the image
     :tuple(int, int) output_size: Output size of the image
+    :tuple(int, int) output_reshape: In case the image is a column vector, this is the shape it should be reshaped to
  
     Keyword Arguments
     -----------------
@@ -146,18 +148,19 @@ def augmentation_pipeline(
 
     # reshapes masks, such that transforamtions work properly
     if output_size[1] == 1:
-        mask = tf.reshape(mask, output_size)
+        mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
 
     if image_queue == None and mask_queue == None:
         #!Possibly in the wrong place as it has to be regenerated every time
         image_queue, mask_queue = generate_default_queue()
-        print("No queue passed, using default queue")
+        # print("No queue passed, using default queue")
         
     elif image_queue == None or mask_queue == None:
         raise ValueError("Both queues must be passed or none")
     
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
+
     for i, fun in enumerate(image_queue.queue):
         image = fun(image, **image_queue.arguments[i])
 
@@ -188,4 +191,5 @@ def flatten(image, input_size, channels=1):
     :return: flattened image
     :rtype: tf.Tensor
     """
-    return tf.reshape(image, (input_size[0] * input_size[1], channels))
+    #the 1 is required to preserve the shape similar to the original
+    return tf.reshape(image, (input_size[0] * input_size[1],1, channels))
