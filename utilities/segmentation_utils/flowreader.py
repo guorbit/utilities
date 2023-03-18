@@ -178,7 +178,7 @@ class FlowGenerator:
                     self.image_size,
                     self.output_size,
                     self.output_reshape,
-                    seed=0,
+                    seed=image_seed,
                     image_queue=preprocessing_queue_image,
                     mask_queue=preprocessing_queue_mask,
                 )
