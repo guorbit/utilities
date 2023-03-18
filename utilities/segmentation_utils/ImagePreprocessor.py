@@ -1,7 +1,8 @@
-import numpy as np
-import tensorflow as tf
 from dataclasses import dataclass
 from typing import Callable, Dict
+import numpy as np
+import tensorflow as tf
+
 
 
 @dataclass
@@ -129,9 +130,15 @@ def augmentation_pipeline(
 
     Keyword Arguments
     -----------------
-    :tuple(int, int), optional output_reshape: In case the image is a column vector, this is the shape it should be reshaped to. Defaults to None.
-    :PreprocessingQueue, optional mask_queue image_queue: Augmentation processing queue for images, defaults to None
-    :PreprocessingQueue, optional mask_queue: Augmentation processing queue for masks, defaults to None
+    :tuple(int, int), optional output_reshape: In case the image is a column vector,
+    this is the shape it should be reshaped to. Defaults to None.
+    
+    :PreprocessingQueue, optional mask_queue image_queue: 
+    Augmentation processing queue for images, defaults to None
+
+    :PreprocessingQueue, optional mask_queue: Augmentation processing queue
+    for masks, defaults to None
+    
     :int, optional channels: Number of bands in the image, defaults to 3
     :int, optional seed: The seed to be used in the pipeline, defaults to 0
 
@@ -148,8 +155,6 @@ def augmentation_pipeline(
     # reshapes masks, such that transforamtions work properly
     if output_size[1] == 1:
         mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
-
-
 
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)

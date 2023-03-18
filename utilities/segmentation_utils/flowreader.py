@@ -23,15 +23,14 @@ class FlowGenerator:
         mask_path: str,
         image_size: tuple[int, int],
         output_size: tuple[int, int],
-        num_classes:int,
-        shuffle:bool=True,
-        batch_size:int=2,
-        preprocessing_enabled:bool=True,
-        seed:int=909,
-        preprocessing_seed:int=None,
-        preprocessing_queue_image:ImagePreprocessor.PreprocessingQueue = None,
-        preprocessing_queue_mask:ImagePreprocessor.PreprocessingQueue = None,
-        
+        num_classes: int,
+        shuffle: bool = True,
+        batch_size: int = 2,
+        preprocessing_enabled: bool = True,
+        seed: int = 909,
+        preprocessing_seed: int = None,
+        preprocessing_queue_image: ImagePreprocessor.PreprocessingQueue = None,
+        preprocessing_queue_mask: ImagePreprocessor.PreprocessingQueue = None,
     ):
         """
         Initializes the flow generator object,
@@ -131,10 +130,13 @@ class FlowGenerator:
             target_size=self.output_size,
             color_mode="grayscale",
         )
-        if self.preprocessing_queue_image == None and self.preprocessing_queue_mask == None:
+        if self.preprocessing_queue_image is None and self.preprocessing_queue_mask is None:
             #!Possibly in the wrong place as it has to be regenerated every time
-            self.preprocessing_queue_image, self.preprocessing_queue_mask = ImagePreprocessor.generate_default_queue()
-        elif self.preprocessing_queue_image == None or self.preprocessing_queue_mask == None:
+            (
+                self.preprocessing_queue_image,
+                self.preprocessing_queue_mask,
+            ) = ImagePreprocessor.generate_default_queue()
+        elif self.preprocessing_queue_image is None or self.preprocessing_queue_mask is None:
             raise ValueError("Both queues must be passed or none")
 
         self.train_generator = zip(image_generator, mask_generator)
@@ -169,7 +171,7 @@ class FlowGenerator:
         """
         for (img, mask) in generator_zip:
             if self.preprocessing_enabled:
-                for i in range(len(img)):
+                for i_image,i_mask in zip(img, mask):
                     # random state for reproducibility
                     if self.preprocessing_seed is None:
                         image_seed = np.random.randint(0, 100000)
@@ -177,9 +179,9 @@ class FlowGenerator:
                         state = np.random.RandomState(state)
                         image_seed = state.randint(0, 100000)
 
-                    img[i], mask[i] = ImagePreprocessor.augmentation_pipeline(
-                        img[i],
-                        mask[i],
+                    i_image, i_mask = ImagePreprocessor.augmentation_pipeline(
+                        i_image,
+                        i_mask,
                         self.image_size,
                         self.output_size,
                         self.output_reshape,
