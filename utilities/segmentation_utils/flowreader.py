@@ -134,7 +134,7 @@ class FlowGenerator:
             raise ValueError("Both queues must be passed or none")
 
         self.train_generator = zip(image_generator, mask_generator)
-        self.train_generator = self.preprocess(self.train_generator, self.preprocessing_queue_image, self.preprocessing_queue_mask, self.preprocessing_seed)
+        self.train_generator = self.preprocess(self.train_generator, self.preprocessing_queue_image, self.preprocessing_queue_mask, state = self.preprocessing_seed)
 
     def get_generator(self):
         """
