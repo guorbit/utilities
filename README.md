@@ -1,3 +1,5 @@
+![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/python-app.yml/badge.svg?branch=migrating_segmentation_utils)
+
 Note before installation: None of these commands have been properly tested. Make sure you installed the package in a virtual environment.
 
 For installing the utilities repo as a package use the following commands in the terminal:
