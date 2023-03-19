@@ -1,11 +1,11 @@
-from utilities.segmentation_utils import ImagePreprocessor
 import numpy as np
 import tensorflow as tf
+from utilities.segmentation_utils import ImagePreprocessor
+
 
 
 def test_image_onehot_encoder() -> None:
     # predifining input variables
-
     n_classes = 2
     batch_size = 1
     image_size = (512, 512)
@@ -14,7 +14,6 @@ def test_image_onehot_encoder() -> None:
     # creating a mask with 2 classes
     mask = np.zeros((batch_size, output_size[0] * output_size[1]))
     mask[:, ::2] = 1
-    
 
     # creating a onehot mask to compare with the output of the function
     onehot_test = np.zeros((batch_size, output_size[0] * output_size[1], n_classes))
@@ -41,7 +40,6 @@ def test_image_augmentation_pipeline_column() -> None:
     input_size = (512, 512)
     output_size = (256 * 256, 1)
     output_reshape = (256, 256)
-    seed = 0
 
     # createing dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
@@ -70,7 +68,6 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
 
     input_size = (512, 512)
     output_size = (256, 256)
-    seed = 0
 
     # createing dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
@@ -100,9 +97,6 @@ def test_processing_queue() -> None:
     image_queue = ImagePreprocessor.PreprocessingQueue(
         queue=[lambda seed: seed], arguments=[dict(seed=1)]
     )
-    mask_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda seed: seed], arguments=[dict(seed=1)]
-    )
 
     # changing the seed
     new_seed = 5
@@ -120,7 +114,6 @@ def test_generate_default_queue() -> None:
     image_queue.update_seed(new_seed)
 
     assert image_queue.arguments[0]["seed"] == new_seed
-
     assert image_queue.get_queue_length() == 6
     assert mask_queue.get_queue_length() == 2
 
