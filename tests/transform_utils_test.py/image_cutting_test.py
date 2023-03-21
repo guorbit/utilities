@@ -1,5 +1,5 @@
 import numpy as np
-from utilities.transform_utils.image_cutting import image_cut, image_stich,image_cut_experimental
+from utilities.transform_utils.image_cutting import image_cut, image_stich
 
 
 

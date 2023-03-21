@@ -108,6 +108,7 @@ def image_cut_experimental(
     image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1
 ) -> NDArray[Any]:
 
+    # calculate padding
     diff = [0, 0]
     if image.shape[0] % cut_dims[0] != 0:
         diff[0] = cut_dims[0] - image.shape[0] % cut_dims[0]
@@ -118,6 +119,7 @@ def image_cut_experimental(
 
     img_counts = (image.shape[0] // cut_dims[0], image.shape[1] // cut_dims[1])
 
+    # reshape image to be [N, H, W, C]
     image = image.reshape(
         (img_counts[0], cut_dims[0], img_counts[1], cut_dims[1], num_bands)
     )
