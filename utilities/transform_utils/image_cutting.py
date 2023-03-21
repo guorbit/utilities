@@ -49,12 +49,12 @@ def image_cut(
         raise ValueError(
             "input image is a 2d matrix, but input number of bands is not 1"
         )
-    
+
     if len(im_shape) == 2:
         image = np.expand_dims(image, axis=-1)
-    
+
     edge_space = (im_shape[1] % cut_dims[1], im_shape[0] % cut_dims[0])
-    
+
     num_ims_x = int(np.ceil(im_shape[1] / cut_dims[1]))
     num_ims_y = int(np.ceil(im_shape[0] / cut_dims[0]))
     num_ims = num_ims_x * num_ims_y
@@ -65,19 +65,31 @@ def image_cut(
 
     for y_ims in range(num_ims_y):
         for x_ims in range(num_ims_x):
-            if x_ims == num_ims_x - 1 and y_ims != num_ims_y - 1:
+            if (
+                x_ims == num_ims_x - 1
+                and y_ims != num_ims_y - 1
+                and edge_space != (0, 0)
+            ):
                 cut_ims[i, :, : edge_space[1], :] = image[
                     y_ims * cut_dims[0] : (y_ims + 1) * cut_dims[0],
                     x_ims * cut_dims[1] :,
                     :,
                 ]
-            elif x_ims != num_ims_x - 1 and y_ims == num_ims_y - 1:
+            elif (
+                x_ims != num_ims_x - 1
+                and y_ims == num_ims_y - 1
+                and edge_space != (0, 0)
+            ):
                 cut_ims[i, : edge_space[0], :, :] = image[
                     y_ims * cut_dims[0] :,
                     x_ims * cut_dims[1] : (x_ims + 1) * cut_dims[1],
                     :,
                 ]
-            elif x_ims == num_ims_x - 1 and y_ims == num_ims_y - 1:
+            elif (
+                x_ims == num_ims_x - 1
+                and y_ims == num_ims_y - 1
+                and edge_space != (0, 0)
+            ):
                 cut_ims[i, : edge_space[0], : edge_space[1], :] = image[
                     y_ims * cut_dims[0] :, x_ims * cut_dims[1] :, :
                 ]
@@ -90,6 +102,30 @@ def image_cut(
             i += 1
 
     return cut_ims
+
+
+def image_cut_experimental(
+    image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1
+) -> NDArray[Any]:
+
+    diff = [0, 0]
+    if image.shape[0] % cut_dims[0] != 0:
+        diff[0] = cut_dims[0] - image.shape[0] % cut_dims[0]
+    if image.shape[1] % cut_dims[1] != 0:
+        diff[1] = cut_dims[1] - image.shape[1] % cut_dims[1]
+
+    image = np.pad(image, ((0, diff[0]), (0, diff[1]), (0, 0)), mode="constant")
+
+    img_counts = (image.shape[0] // cut_dims[0], image.shape[1] // cut_dims[1])
+
+    image = image.reshape(
+        (img_counts[0], cut_dims[0], img_counts[1], cut_dims[1], num_bands)
+    )
+
+    image = image.transpose((0, 2, 1, 3, 4))
+    image = image.reshape((img_counts[0] * img_counts[1], cut_dims[0], cut_dims[1], 3))
+
+    return image
 
 
 def image_stich(
@@ -106,7 +142,7 @@ def image_stich(
                 CW = combined width of small images = num_ims_x*W - (W-edges_pace[1])
                 C = number of channels/bands.
     It is also assumed that the images in Ims are stored in row major order.
-    #! Note edge_space = im_dims-black_space. i.e. edge space is the amount of 
+    #! Note edge_space = im_dims-black_space. i.e. edge space is the amount of
     #! image that is not black.
 
     Arguments
@@ -114,7 +150,7 @@ def image_stich(
     :NDArray[np.int16] ims: Images tensor to combine in shape [N, H, W, C].
     :int num_ims_x: Specfies how many small images to stack in the x direction to make big image.
     :int num_ims_y: Specfies how many small images to stack in the y direction to make big image.
-    :tuple[int] edge_space: The number of pixels in each direction that are not black space, 
+    :tuple[int] edge_space: The number of pixels in each direction that are not black space,
     of the most bottom left image.
 
     Returns
@@ -160,6 +196,16 @@ def image_stich(
             im_index += 1
 
     return image
+
+
+def image_stich_experimental(
+    ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int]
+) -> NDArray[np.int16]:
+
+    # no idea what edge space is 😥😥
+    ims = ims.reshape(ims.shape[1] * num_ims_x, ims.shape[2] * num_ims_y, ims.shape[3])
+
+    return ims
 
 
 def cut_ims_in_directory(
