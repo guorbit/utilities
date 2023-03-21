@@ -1,5 +1,5 @@
 import numpy as np
-from utilities.transform_utils.image_cutting import image_cut, image_stich
+from utilities.transform_utils.image_cutting import image_cut, image_stich, image_cut_experimental
 
 
 
@@ -7,6 +7,15 @@ def test_image_cut() -> None:
     img = np.zeros((512, 512, 3))
     img[-1,-1,0] = 1
     cut_ims = image_cut(img, (256, 256), num_bands = 3)
+
+    assert cut_ims.shape == (4, 256, 256, 3)
+    assert cut_ims[0, 0, 0, 0] == 0   
+    assert cut_ims[-1, -1, -1, 0] == 1
+
+def test_image_cut_slack_cut() -> None:
+    img = np.zeros((513, 513, 3))
+    img[-2,-2,0] = 1
+    cut_ims = image_cut_experimental(img, (256, 256), num_bands = 3, pad = False)
 
     assert cut_ims.shape == (4, 256, 256, 3)
     assert cut_ims[0, 0, 0, 0] == 0   

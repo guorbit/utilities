@@ -105,17 +105,43 @@ def image_cut(
 
 
 def image_cut_experimental(
-    image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1
+    image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1, pad: bool = True
 ) -> NDArray[Any]:
+    def _get_padded_img(image):
+        diff = [0, 0]
+        if image.shape[0] % cut_dims[0] != 0:
+            diff[0] = cut_dims[0] - image.shape[0] % cut_dims[0]
+        if image.shape[1] % cut_dims[1] != 0:
+            diff[1] = cut_dims[1] - image.shape[1] % cut_dims[1]
 
-    # calculate padding
-    diff = [0, 0]
-    if image.shape[0] % cut_dims[0] != 0:
-        diff[0] = cut_dims[0] - image.shape[0] % cut_dims[0]
-    if image.shape[1] % cut_dims[1] != 0:
-        diff[1] = cut_dims[1] - image.shape[1] % cut_dims[1]
+        image = np.pad(image, ((0, diff[0]), (0, diff[1]), (0, 0)), mode="constant")
+        return image
 
-    image = np.pad(image, ((0, diff[0]), (0, diff[1]), (0, 0)), mode="constant")
+    def _cut_image_slack(image):
+        # crop image to remove slack
+        cut_values = [0, 0, 0, 0]
+        if image.shape[0] % cut_dims[0] != 0:
+            cut_x = image.shape[0] % cut_dims[0]
+            cut_values[0] = cut_x // 2
+            cut_values[1] = cut_x - cut_values[0]
+        if image.shape[1] % cut_dims[1] != 0:
+            cut_y = image.shape[1] % cut_dims[1]
+            cut_values[2] = cut_y // 2
+            cut_values[3] = cut_y - cut_values[2]
+
+        image = image[
+            cut_values[0] : -cut_values[1],
+            cut_values[2] : -cut_values[3],
+            :,
+        ]
+        return image
+
+    if pad:
+        # calculate padding
+        image = _get_padded_img(image)
+    else:
+        # crop image to remove slack
+        image = _cut_image_slack(image)
 
     img_counts = (image.shape[0] // cut_dims[0], image.shape[1] // cut_dims[1])
 
@@ -204,7 +230,7 @@ def image_stich_experimental(
     ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int]
 ) -> NDArray[np.int16]:
 
-    # no idea what edge space is 😥😥
+    # no idea what edge space is 😥😥 so its not implemented yet
     ims = ims.reshape(ims.shape[1] * num_ims_x, ims.shape[2] * num_ims_y, ims.shape[3])
 
     return ims
