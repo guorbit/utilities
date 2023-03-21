@@ -49,12 +49,12 @@ def image_cut(
         raise ValueError(
             "input image is a 2d matrix, but input number of bands is not 1"
         )
-
+    
     if len(im_shape) == 2:
         image = np.expand_dims(image, axis=-1)
-
+    
     edge_space = (im_shape[1] % cut_dims[1], im_shape[0] % cut_dims[0])
-
+    
     num_ims_x = int(np.ceil(im_shape[1] / cut_dims[1]))
     num_ims_y = int(np.ceil(im_shape[0] / cut_dims[0]))
     num_ims = num_ims_x * num_ims_y
@@ -62,6 +62,7 @@ def image_cut(
     cut_ims = np.zeros((num_ims, cut_dims[0], cut_dims[1], num_bands), dtype=np.int16)
 
     i = 0
+
     for y_ims in range(num_ims_y):
         for x_ims in range(num_ims_x):
             if x_ims == num_ims_x - 1 and y_ims != num_ims_y - 1:
