@@ -41,14 +41,15 @@ def test_image_cut_incorrect_shape_too_many() -> None:
 
 
 def test_image_cut_incorrect_band_specified() -> None:
-    # test doesnt work, it passes even though it should fail
+    # passes however the function doesn't rasie a value error
+    # when the bands do not match
     try:
         img = np.zeros((512, 512, 5))
         img[-1, -1, 0] = 1
         image_cut(img, (256, 256), num_bands=3)
         assert False
     except ValueError as e:
-        print(e)
+        
         assert True
 
 
