@@ -70,7 +70,7 @@ jobs:
       run: |
         mkdir -p ./coverage
         pip install pytest-cov
-        python -m pytest --cov-report xml:coverage.xml
+        python -m pytest --cov-report xml:./coverage/coverage.xml
         cd ./coverage
         ls
     - name: test retained
