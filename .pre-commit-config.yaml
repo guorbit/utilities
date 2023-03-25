@@ -1,0 +1,17 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+
+repos:
+
+
+# - repo: https://github.com/jendrikseipp/vulture
+#   rev: v2.3
+#   hooks:
+#     # dead code detector
+#   - id: vulture
+
+- repo: https://github.com/jorisroovers/gitlint
+  rev: v0.17.0
+  hooks:
+    # git commit message linter
+  - id: gitlint
