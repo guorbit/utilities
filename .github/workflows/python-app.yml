@@ -68,6 +68,7 @@ jobs:
         pylint --fail-under=9.8 --rcfile=.pylintrc utilities
     - name: code coverage
       run: |
+        mkdir -p ./coverage
         pip install pytest-cov
         python -m pytest --cov-report xml:./coverage/coverage.xml
     - name: Upload coverage
