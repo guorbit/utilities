@@ -79,7 +79,7 @@ jobs:
         ls
     
     - name: Upload coverage
-      uses: orgoro/coverage@v3
+      uses: codecov/codecov-action@v3
       with:
-          coverageFile: coverage.xml
-          token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
+        files: ./coverage/coverage.xml # optional
