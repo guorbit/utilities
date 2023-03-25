@@ -71,10 +71,12 @@ jobs:
         mkdir -p ./coverage
         pip install pytest-cov
         python -m pytest --cov-report xml:coverage.xml
-        ls -l ./coverage
+        cd ./coverage
+        ls
     - name: test retained
       run: |
-        ls -l ./coverage
+        cd ./coverage
+        ls
     
     - name: Upload coverage
       uses: orgoro/coverage@v3
