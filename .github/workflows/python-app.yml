@@ -70,8 +70,8 @@ jobs:
       run: |
         mkdir -p ./coverage
         pip install pytest-cov
-        python -m pytest --cov-report xml:./coverage/coverage.xml
-        cd ./coverage
+        python -m pytest --cov-report xml:coverage.xml
+        
         ls
         pwd
     
