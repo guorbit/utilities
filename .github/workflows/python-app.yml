@@ -73,6 +73,8 @@ jobs:
         python -m pytest --cov-report xml:./coverage/coverage.xml
     - name: Upload coverage
       uses: orgoro/coverage@v3
+      run: |
+        ls
       with:
           coverageFile: ./coverage/coverage.xml
           token: ${{ secrets.GITHUB_TOKEN }}
