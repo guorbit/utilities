@@ -1,4 +1,4 @@
-![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/python-app.yml/badge.svg?branch=migrating_segmentation_utils)
+![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/python-app.yml/badge.svg?branch=main) [![codecov](https://codecov.io/github/guorbit/utilities/branch/main/graph/badge.svg?token=3RVZAHQ4W2)](https://codecov.io/github/guorbit/utilities)
 
 Note before installation: None of these commands have been properly tested. Make sure you installed the package in a virtual environment.
 
