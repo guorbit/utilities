@@ -73,13 +73,10 @@ jobs:
         python -m pytest --cov-report xml:./coverage/coverage.xml
         cd ./coverage
         ls
-    - name: test retained
-      run: |
-        cd ./coverage
-        ls
+        pwd
     
     - name: Upload coverage
       uses: codecov/codecov-action@v3
       with:
         token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-        files: ../coverage/coverage.xml # optional
+        files: coverage.xml # optional
