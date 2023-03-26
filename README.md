@@ -4,16 +4,14 @@ Note before installation: None of these commands have been properly tested. Make
 
 For installing the utilities repo as a package use the following commands in the terminal:
 Note: you need to have a working ssh key to access github from your current machine.
+you need to have wheel installed.
 
 ```
-pip install git+ssh://git@github.com:guorbit/utilities.git
+python setup.py bdist_wheel sdist
 
 ```
-
-
-Alternatively the following command can be used to install a git repo AFTER cloning it:
-Note: the path below has to be modified to point to the package directory.
+After build run the following command to install, the built package.
 ```
-pip install git+file:///path/to/your/package#egg=package-name
+pip install .
 
 ```
