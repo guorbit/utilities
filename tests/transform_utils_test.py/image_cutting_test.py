@@ -1,6 +1,5 @@
 import numpy as np
 from pytest import MonkeyPatch
-from pytest_mock import mocker
 import rasterio
 from PIL import Image
 from utilities.transform_utils.image_cutting import (
@@ -10,7 +9,6 @@ from utilities.transform_utils.image_cutting import (
     image_stich_experimental,
     cut_ims_in_directory,
 )
-
 
 
 def test_image_cut() -> None:
@@ -88,7 +86,6 @@ def test_image_cut_pad() -> None:
     assert cut_ims[-1, -3, -3, 0] == 1
 
 
-
 def test_image_cut_pad_exact() -> None:
     img = np.zeros((512, 512, 3))
     img[-2, -2, 0] = 1
@@ -107,6 +104,7 @@ def test_image_cut_incorrect_band() -> None:
         assert False
     except ValueError:
         assert True
+
 
 def test_image_cut_can_add_dimension() -> None:
     img = np.zeros((512, 512))
@@ -149,7 +147,9 @@ def test_image_stich_experimental() -> None:
         img3[:, :, i] = 6 + i
         img4[:, :, i] = 9 + i
 
-    stiched_img = image_stich_experimental(np.array([img1, img2, img3, img4]), 2, 2, (256, 256))
+    stiched_img = image_stich_experimental(
+        np.array([img1, img2, img3, img4]), 2, 2, (256, 256)
+    )
 
     assert stiched_img.shape == (512, 512, 3)
     assert stiched_img[0, 0, 0] == 0
@@ -164,14 +164,19 @@ def test_cut_ims_in_directory(mocker) -> None:
         2: np.zeros((512, 512)),
         3: np.zeros((512, 512)),
     }
-    
-    mock_reader = mocker.MagicMock(spec=rasterio.io.DatasetReader, read = lambda x: path_map[x], shape = (512,512), count = 3)
 
-    patch.setattr("os.listdir", lambda _: ["1.tiff","2.tiff","3.tiff","4.tiff"])
-    patch.setattr(rasterio,"open", lambda x: mock_reader)
-    patch.setattr(Image.Image, "save", lambda x,y: None)
+    mock_reader = mocker.MagicMock(
+        spec=rasterio.io.DatasetReader,
+        read=lambda x: path_map[x],
+        shape=(512, 512),
+        count=3,
+    )
 
-    cut_ims_in_directory("test", "test", (256,256))
+    patch.setattr("os.listdir", lambda _: ["1.tiff", "2.tiff", "3.tiff", "4.tiff"])
+    patch.setattr(rasterio, "open", lambda x: mock_reader)
+    patch.setattr(Image.Image, "save", lambda x, y: None)
+
+    cut_ims_in_directory("test", "test", (256, 256))
 
     patch.undo()
     patch.undo()
