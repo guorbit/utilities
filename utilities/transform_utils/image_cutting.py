@@ -129,9 +129,10 @@ def image_cut_experimental(
             cut_values[2] = cut_y // 2
             cut_values[3] = cut_y - cut_values[2]
 
+
         image = image[
-            cut_values[0] : -cut_values[1],
-            cut_values[2] : -cut_values[3],
+            cut_values[0] : -cut_values[1] or None,
+            cut_values[2] : -cut_values[3] or None,
             :,
         ]
         return image
@@ -142,6 +143,8 @@ def image_cut_experimental(
     else:
         # crop image to remove slack
         image = _cut_image_slack(image)
+
+    print(image.shape)
 
     img_counts = (image.shape[0] // cut_dims[0], image.shape[1] // cut_dims[1])
 
@@ -256,14 +259,17 @@ def cut_ims_in_directory(
 
         im_path = path_ims + "\\" + im_name
         rasterio_data = rasterio.open(im_path)
-
+        print(type(rasterio_data))
         image = np.empty(
             (rasterio_data.shape[0], rasterio_data.shape[1], rasterio_data.count),
             dtype=np.int16,
         )
+        print(image.shape)
         image[:, :, 0] = rasterio_data.read(1)
         image[:, :, 1] = rasterio_data.read(2)
         image[:, :, 2] = rasterio_data.read(3)
+
+        print(image.shape)
 
         ims = image_cut(image, target_dims, num_bands=3)
         ims = np.array(ims, dtype=np.int8)
@@ -271,7 +277,7 @@ def cut_ims_in_directory(
         for index, cut_array in enumerate(ims):
 
             cut_im = Image.fromarray(cut_array, mode="RGB")
-
+            print(type(cut_im))
             cut_im.save(path_target_dir + "\\" + im_name[0:-4] + str(index) + ".png")
 
 
