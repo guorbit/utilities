@@ -5,13 +5,15 @@ This modules contains functions to manipulate images in the form of numpy arrays
 import os
 import pathlib
 from typing import Any
+
 import numpy as np
-from numpy.typing import NDArray
 import rasterio
+from numpy.typing import NDArray
 from PIL import Image
 
 
-def image_cut(
+@DeprecationWarning
+def image_cut_legacy(
     image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1
 ) -> NDArray[Any]:
     """
@@ -104,9 +106,20 @@ def image_cut(
     return cut_ims
 
 
-def image_cut_experimental(
+def image_cut(
     image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1, pad: bool = True
 ) -> NDArray[Any]:
+    im_shape = image.shape
+    if (len(im_shape) != 2) and (len(im_shape) != 3):
+        raise ValueError("input image must be either a matrix, or a 3d tensor")
+
+    if (len(im_shape) == 2) and num_bands != 1:
+        raise ValueError(
+            "input image is a 2d matrix, but input number of bands is not 1"
+        )
+
+    if len(im_shape) == 2:
+        image = np.expand_dims(image, axis=-1)
     def _get_padded_img(image):
         diff = [0, 0]
         if image.shape[0] % cut_dims[0] != 0:
@@ -128,7 +141,6 @@ def image_cut_experimental(
             cut_y = image.shape[1] % cut_dims[1]
             cut_values[2] = cut_y // 2
             cut_values[3] = cut_y - cut_values[2]
-
 
         image = image[
             cut_values[0] : -cut_values[1] or None,
@@ -154,13 +166,13 @@ def image_cut_experimental(
     )
 
     image = image.transpose((0, 2, 1, 3, 4))
-    image = image.reshape((img_counts[0] * img_counts[1], cut_dims[0], cut_dims[1], 3))
+    image = image.reshape((img_counts[0] * img_counts[1], cut_dims[0], cut_dims[1], num_bands))
 
     return image
 
-
-def image_stich(
-    ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int]
+@DeprecationWarning
+def image_stich_legacy(
+    ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
 ) -> NDArray[np.int16]:
     """Stiches input images "ims", into a single returned image.
     assumed layout of input images is [N, H, W, C].
@@ -229,18 +241,21 @@ def image_stich(
     return image
 
 
-def image_stich_experimental(
-    ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int]
+def image_stich(
+    ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
 ) -> NDArray[np.int16]:
 
-    # no idea what edge space is 😥😥 so its not implemented yet
     ims = ims.reshape(ims.shape[1] * num_ims_x, ims.shape[2] * num_ims_y, ims.shape[3])
+
+    black_space = (ims.shape[0] - edge_space[0], ims.shape[1] - edge_space[1])
+    padding = (black_space[0]//2,black_space[0]//2-black_space[0], black_space[1]//2,black_space[0]//2-black_space[1], 0)
+    ims = ims[padding[0]:-padding[1]or None, padding[2]:-padding[3] or None, :]
 
     return ims
 
 
 def cut_ims_in_directory(
-    path_ims: str, path_target_dir: str, target_dims: tuple[int] = (512, 512)
+    path_ims: str, path_target_dir: str, target_dims: tuple[int, int] = (512, 512)
 ) -> None:
     """Finds images at "Path_ims" cuts them into dimension "target_dims",
     and then saves them as png files to "path_target_dir".
@@ -271,7 +286,7 @@ def cut_ims_in_directory(
 
         print(image.shape)
 
-        ims = image_cut(image, target_dims, num_bands=3)
+        ims = image_cut(image, target_dims, num_bands=3, pad=False)
         ims = np.array(ims, dtype=np.int8)
 
         for index, cut_array in enumerate(ims):
