@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 
 
-
 @dataclass
 class PreprocessingQueue:
     """
@@ -132,13 +131,13 @@ def augmentation_pipeline(
     -----------------
     :tuple(int, int), optional output_reshape: In case the image is a column vector,
     this is the shape it should be reshaped to. Defaults to None.
-    
-    :PreprocessingQueue, optional mask_queue image_queue: 
+
+    :PreprocessingQueue, optional mask_queue image_queue:
     Augmentation processing queue for images, defaults to None
 
     :PreprocessingQueue, optional mask_queue: Augmentation processing queue
     for masks, defaults to None
-    
+
     :int, optional channels: Number of bands in the image, defaults to 3
     :int, optional seed: The seed to be used in the pipeline, defaults to 0
 
