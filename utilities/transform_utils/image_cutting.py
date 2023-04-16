@@ -424,7 +424,21 @@ def cut_ims_in_directory(
                 else:
                     cut_im = Image.fromarray(n, mode="RGB")
                 cut_im.save(
-                    path_target_dir + "\\" + str(batch_counter) + "_" + str(i) + ".png"
+                    os.path.join(
+                        path_target_dir,
+                        "".join(
+                            [
+                                str(batch_counter),
+                                "_",
+                                str(i),
+                                "_",
+                                str(target_dims[0]),
+                                "x",
+                                str(target_dims[1]),
+                                ".tiff",
+                            ]
+                        ),
+                    )
                 )
             batch = None
             batch_counter += 1
