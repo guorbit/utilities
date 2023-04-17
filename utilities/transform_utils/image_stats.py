@@ -15,7 +15,6 @@ def get_distribution_seg(path,files:list[str], num_classes:int=7):
         img = Image.open(os.path.join(path,file))
         img = np.array(img)
         for i in range(num_classes):
-            print(img)
             distribution[i] += np.sum(img==i)
     
     return distribution
@@ -23,6 +22,5 @@ def get_distribution_seg(path,files:list[str], num_classes:int=7):
 if __name__ == "__main__":
     path = "cut_masks"
     files = os.listdir(path)
-    print(files)
     dist = get_distribution_seg(path,files)
     print(dist)
