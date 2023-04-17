@@ -354,7 +354,6 @@ def cut_ims_in_directory(
     print("the following files are located at input Path :")
     dir_contents = os.listdir(path_ims)
     dir_contents = sorted(dir_contents)
-    print(dir_contents)
     batch_size = 100
     batch = None
     batch_counter = 0
