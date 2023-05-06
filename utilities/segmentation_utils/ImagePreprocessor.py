@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
+
 import numpy as np
 import tensorflow as tf
 
@@ -108,9 +109,9 @@ def augmentation_pipeline(
     mask,
     input_size: tuple[int, int],
     output_size: tuple[int, int],
-    output_reshape: tuple[int, int] = None,
-    image_queue: PreprocessingQueue = None,
-    mask_queue: PreprocessingQueue = None,
+    image_queue: PreprocessingQueue,
+    mask_queue: PreprocessingQueue,
+    output_reshape: Optional[tuple[int, int]] = None,
     channels: int = 3,
     seed: int = 0,
 ):
@@ -152,7 +153,7 @@ def augmentation_pipeline(
     """
 
     # reshapes masks, such that transforamtions work properly
-    if output_size[1] == 1:
+    if output_reshape is not None and output_size[1] == 1:
         mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
 
     image_queue.update_seed(seed)

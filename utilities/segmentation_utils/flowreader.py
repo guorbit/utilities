@@ -2,10 +2,13 @@
 FlowGenerator is a wrapper around the keras ImageDataGenerator class.
 """
 
-import os
 import math
+import os
+from typing import Optional
+
 import numpy as np
 from keras.preprocessing.image import ImageDataGenerator
+
 from utilities.segmentation_utils import ImagePreprocessor
 
 
@@ -28,9 +31,9 @@ class FlowGenerator:
         batch_size: int = 2,
         preprocessing_enabled: bool = True,
         seed: int = 909,
-        preprocessing_seed: int = None,
-        preprocessing_queue_image: ImagePreprocessor.PreprocessingQueue = None,
-        preprocessing_queue_mask: ImagePreprocessor.PreprocessingQueue = None,
+        preprocessing_seed: Optional[int] = None,
+        preprocessing_queue_image: Optional[ImagePreprocessor.PreprocessingQueue] = None,
+        preprocessing_queue_mask: Optional[ImagePreprocessor.PreprocessingQueue] = None,
     ):
         """
         Initializes the flow generator object,
@@ -116,7 +119,7 @@ class FlowGenerator:
 
         image_generator = image_datagen.flow_from_directory(
             self.image_path,
-            class_mode=None,
+            class_mode=None, # type: ignore
             seed=self.seed,
             batch_size=self.batch_size,
             target_size=self.image_size,
@@ -124,7 +127,7 @@ class FlowGenerator:
 
         mask_generator = mask_datagen.flow_from_directory(
             self.mask_path,
-            class_mode=None,
+            class_mode=None, # type: ignore
             seed=self.seed,
             batch_size=self.batch_size,
             target_size=self.output_size,
@@ -176,18 +179,19 @@ class FlowGenerator:
                     if self.preprocessing_seed is None:
                         image_seed = np.random.randint(0, 100000)
                     else:
-                        state = np.random.RandomState(state)
+                        state = np.random.RandomState(self.preprocessing_seed)
                         image_seed = state.randint(0, 100000)
 
                     i_image, i_mask = ImagePreprocessor.augmentation_pipeline(
-                        i_image,
-                        i_mask,
-                        self.image_size,
-                        self.output_size,
-                        self.output_reshape,
+                        image = i_image,
+                        mask = i_mask,
+                        input_size = self.image_size,
+                        output_size = self.output_size,
+                        output_reshape = self.output_reshape,
                         seed=image_seed,
-                        image_queue=self.preprocessing_queue_image,
-                        mask_queue=self.preprocessing_queue_mask,
+                        #!both preprocessing queues are assigned by this time
+                        image_queue=self.preprocessing_queue_image, # type: ignore 
+                        mask_queue=self.preprocessing_queue_mask, # type: ignore
                     )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.output_size, self.num_classes
