@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from utilities.segmentation_utils import ImagePreprocessor
 
+from utilities.segmentation_utils import ImagePreprocessor
 
 
 def test_image_onehot_encoder() -> None:
@@ -50,7 +50,7 @@ def test_image_augmentation_pipeline_column() -> None:
     )
 
     image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
-        image, mask, input_size, output_size, output_reshape, image_queue, mask_queue
+        image, mask, input_size, output_size, image_queue, mask_queue,output_reshape
     )
     image_new = image_new.numpy()
     mask_new = mask_new.numpy()
