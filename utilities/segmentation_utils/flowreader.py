@@ -190,7 +190,7 @@ class FlowGenerator:
                         output_reshape = self.output_reshape,
                         seed=image_seed,
                         #!both preprocessing queues are assigned by this time
-                        image_queue=self.preprocessing_queue_image, # type: ignore 
+                        image_queue=self.preprocessing_queue_image, # type: ignore
                         mask_queue=self.preprocessing_queue_mask, # type: ignore
                     )
             mask = ImagePreprocessor.onehot_encode(

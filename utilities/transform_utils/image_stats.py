@@ -5,9 +5,9 @@ from PIL import Image
 from tqdm import tqdm
 
 
-def get_distribution_seg(path,files:list[str], num_classes:int=7):
+def get_distribution_seg(path: str, files: list[str], num_classes: int = 7):
     """
-    Returns the distribution of classes in the segmentation dataset, 
+    Returns the distribution of classes in the segmentation dataset,
     and the number of files the class is present in.
 
     Parameters
@@ -29,15 +29,15 @@ def get_distribution_seg(path,files:list[str], num_classes:int=7):
         distribution[i] = 0
 
     for file in tqdm(set_of_files):
-        img = Image.open(os.path.join(path,file))
+        img = Image.open(os.path.join(path, file))
         img = np.array(img)
         for i in range(num_classes):
-            distribution[i] += np.sum(img==i)
-    
+            distribution[i] += np.sum(img == i)
     return distribution
 
+
 if __name__ == "__main__":
-    path = "cut_masks"
-    files = os.listdir(path)
-    dist = get_distribution_seg(path,files)
+    mask_path = "cut_masks"
+    mask_files = os.listdir(mask_path)
+    dist = get_distribution_seg(mask_path, mask_files)
     print(dist)
