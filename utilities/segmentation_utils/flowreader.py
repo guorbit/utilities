@@ -138,7 +138,7 @@ class FlowGenerator:
             raise ValueError("Both queues must be passed or none")
 
         self.train_generator = zip(image_generator, mask_generator)
-        self.train_generator = self.__preprocess(self.train_generator)
+        self.train_generator = self.preprocess(self.train_generator)
 
     def get_generator(self):
         """
@@ -150,7 +150,7 @@ class FlowGenerator:
         """
         return self.train_generator
 
-    def __preprocess(self, generator_zip):
+    def preprocess(self, generator_zip):
         """
         Preprocessor function encapsulates both the image, and mask generator objects.
         Augments the images and masks and onehot encodes the masks
