@@ -36,8 +36,7 @@ class PreprocessingQueue:
 
         Returns
         -------
-        :return: length of the queue
-        :rtype: int
+        :return int: length of the queue
         """
         return len(self.queue)
 
@@ -95,8 +94,7 @@ def onehot_encode(masks, output_size, num_classes):
 
     Returns
     -------
-    :return: Encoded masks
-    :rtype: batch(tf.Tensor)
+    :return tf.Tensor: Batch of one-hot encoded masks
     """
     encoded = np.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
     for i in range(num_classes):
@@ -130,16 +128,16 @@ def augmentation_pipeline(
 
     Keyword Arguments
     -----------------
-    :tuple(int, int), optional output_reshape: In case the image is a column vector,
+    :tuple(int, int), optional output_reshape: In case the image is a column vector, \
     this is the shape it should be reshaped to. Defaults to None.
 
-    :PreprocessingQueue, optional mask_queue image_queue:
+    :PreprocessingQueue, optional mask_queue image_queue: \
     Augmentation processing queue for images, defaults to None
 
-    :PreprocessingQueue, optional mask_queue: Augmentation processing queue
+    :PreprocessingQueue, optional mask_queue: Augmentation processing queue \
     for masks, defaults to None
 
-    :int, optional channels: Number of bands in the image, defaults to 3
+    :int, optional channels: Number of bands in the image, defaults to 3 \
     :int, optional seed: The seed to be used in the pipeline, defaults to 0
 
     Raises
@@ -148,8 +146,7 @@ def augmentation_pipeline(
 
     Returns
     -------
-    :return: tuple of the processed image and mask
-    :rtype: tuple(tf.Tensor, tf.Tensor)
+    :return tuple(tf.Tensor, tf.Tensor): tuple of the processed image and mask
     """
 
     # reshapes masks, such that transforamtions work properly
@@ -186,8 +183,7 @@ def flatten(image, input_size, channels=1):
 
     Returns
     -------
-    :return: flattened image
-    :rtype: tf.Tensor
+    :return tf.Tensor: flattened image
     """
     # the 1 is required to preserve the shape similar to the original
     return tf.reshape(image, (input_size[0] * input_size[1], 1, channels))

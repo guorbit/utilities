@@ -6,6 +6,7 @@ import os
 import pathlib
 import sys
 from typing import Any
+
 import numpy as np
 import rasterio
 from numpy.typing import NDArray
@@ -112,29 +113,22 @@ def image_cut(
 ) -> NDArray[Any]:
     """
     Takes an input image "image" and cuts into many images each of dimensions "cut_dims".
-    Assumed input image shape [CH,CW,C]
-        where   H = image height,
-                W = image width,
-                C = number of channels/bands.
-    output image shape [N, H, W, C]
-        where   N = as many small images as reqired to fully represent big image.
-                H = height of small images specfied in cut_dims[0]
-                W = width of small images specfied in cut_dims[1]
-                C = Number of channels in input image.
-    #!Note, image are cut in row major order.
-    #!Note, if image dimensions arent a multiple of cut_dims, then the input image is padded
-    #!at the right, and left edge with black pixels. So some images will contain black areas.
+    Assumed input image shape
+
+    Note, image are cut in row major order.
+
+    Note, if image dimensions arent a multiple of cut_dims, then the input image is padded
+    at the right, and left edge with black pixels. So some images will contain black areas.
 
     Arguments
     ---------
-    :NDArray[Any] image: Numpy array representing image to cut.
+    :NDArray[Any] image: Numpy array representing image to cut [H,W,C].
     :tuple[int, int] cut_dims: desired dimensions to cut images to.
     :int, optional num_bands: Number of bands of input image. Defaults to 1.
 
     Returns
     -------
-    :return NDArray[Any]: an array of multiple rgb images that represent input images,
-    in row major order.
+    :return NDArray[Any]: an array of multiple rgb images that represent input image
     """
     im_shape = image.shape
     if (len(im_shape) != 2) and (len(im_shape) != 3):
@@ -204,22 +198,16 @@ def image_stich_legacy(
     ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
 ) -> NDArray[np.int16]:
     """Stiches input images "ims", into a single returned image.
-    assumed layout of input images is [N, H, W, C].
-        where   N = Number of images,
-                H = individual image height,
-                W = indvididual image width,
-                C = number of channels/bands.
-    return image is off shape [CH, CW, C]
-        where   CH = combined height of small images = num_ims_y*H - (H-edges_pace[0])
-                CW = combined width of small images = num_ims_x*W - (W-edges_pace[1])
-                C = number of channels/bands.
-    It is also assumed that the images in Ims are stored in row major order.
-    #! Note edge_space = im_dims-black_space. i.e. edge space is the amount of
-    #! image that is not black.
+    assumed layout of input images is [B, H, W, C].
+
+    Note It is also assumed that the images in Ims are stored in row major order.
+
+    Note edge_space = im_dims-black_space. i.e. edge space is the amount of
+    image that is not black.
 
     Arguments
     ---------
-    :NDArray[np.int16] ims: Images tensor to combine in shape [N, H, W, C].
+    :NDArray[np.int16] ims: Images tensor to combine in shape [B, H, W, C].
     :int num_ims_x: Specfies how many small images to stack in the x direction to make big image.
     :int num_ims_y: Specfies how many small images to stack in the y direction to make big image.
     :tuple[int] edge_space: The number of pixels in each direction that are not black space,
@@ -227,7 +215,7 @@ def image_stich_legacy(
 
     Returns
     -------
-    :return NDArray[np.int16]: 1 large image as a numpy array in shape [CH, CW, C]
+    :return NDArray[np.int16]: 1 large image as a numpy array in shape [H, W, C]
     """
     # assumed layout [b, h, w, c] where b = images to combine,h=height, w=width, c = bands
 
@@ -274,22 +262,16 @@ def image_stich(
     ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
 ) -> NDArray[np.int16]:
     """Stiches input images "ims", into a single returned image.
-    assumed layout of input images is [N, H, W, C].
-        where   N = Number of images,
-                H = individual image height,
-                W = indvididual image width,
-                C = number of channels/bands.
-    return image is off shape [CH, CW, C]
-        where   CH = combined height of small images = num_ims_y*H - (H-edges_pace[0])
-                CW = combined width of small images = num_ims_x*W - (W-edges_pace[1])
-                C = number of channels/bands.
-    It is also assumed that the images in Ims are stored in row major order.
-    #! Note edge_space = im_dims-black_space. i.e. edge space is the amount of
-    #! image that is not black.
+    assumed layout of input images is [B, H, W, C].
+
+    Note It is also assumed that the images in Ims are stored in row major order.
+
+    Note edge_space = im_dims-black_space. i.e. edge space is the amount of
+    image that is not black.
 
     Arguments
     ---------
-    :NDArray[np.int16] ims: Images tensor to combine in shape [N, H, W, C].
+    :NDArray[np.int16] ims: Images tensor to combine in shape [B, H, W, C].
     :int num_ims_x: Specfies how many small images to stack in the x direction to make big image.
     :int num_ims_y: Specfies how many small images to stack in the y direction to make big image.
     :tuple[int] edge_space: The number of pixels in each direction that are not black space,
@@ -297,7 +279,7 @@ def image_stich(
 
     Returns
     -------
-    :return NDArray[np.int16]: 1 large image as a numpy array in shape [CH, CW, C]
+    :return NDArray[np.int16]: 1 large image as a numpy array in shape [H, W, C]
     """
     ims = ims.reshape(ims.shape[1] * num_ims_x, ims.shape[2] * num_ims_y, ims.shape[3])
     black_space = (ims.shape[0] - edge_space[0], ims.shape[1] - edge_space[1])
@@ -312,7 +294,7 @@ def image_stich(
     return ims
 
 
-def preprocess_mask_image(mask_image):
+def __preprocess_mask_image(mask_image):
     """
     Preprocesses mask image to be used in training. removes dimensionality from 3 to 2
     and sets values to class indices.
@@ -401,7 +383,7 @@ def cut_ims_in_directory(
         # fill batch array
         for i, n in enumerate(cut_im):
             if preprocess:
-                n = preprocess_mask_image(n)
+                n = __preprocess_mask_image(n)
             if mask:
                 batch[counter, i, :, :, 0] = n[:, :]
             else:
@@ -446,7 +428,7 @@ def cut_ims_in_directory(
             counter += 1
 
 
-def main():
+if __name__ == "__main__":
     seg_load = False
     preprocess = False
     PATH = str(pathlib.Path().resolve())
@@ -465,7 +447,3 @@ def main():
         cut_ims_in_directory(
             mask_path, target_mask_path, mask=True, preprocess=preprocess
         )
-
-
-if __name__ == "__main__":
-    main()

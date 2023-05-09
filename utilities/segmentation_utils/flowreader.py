@@ -14,10 +14,38 @@ from utilities.segmentation_utils import ImagePreprocessor
 
 class FlowGenerator:
     """
-    FlowGenerator is a wrapper around the keras ImageDataGenerator class.
-    It can be used to read in images for semantic segmentation.
+    Initializes the flow generator object,
+    which can be used to read in images for semantic segmentation.
     Additionally, the reader can apply augmentation on the images,
     and one-hot encode them on the fly.
+
+    Note: in case the output is a column vector it has to be in the shape (x, 1)
+
+    Parameters
+    ----------
+    :string image: path to the image directory
+    :string mask: path to the mask directory
+    :int batch_size: batch size
+    :tuple image_size: image size
+    :tuple output_size: output size
+    
+
+    :int num_classes: number of classes
+
+    Keyword Arguments
+    -----------------
+    :bool shuffle: whether to shuffle the dataset or not
+    :int batch_size: batch size
+    :bool preprocessing_enabled: whether to apply preprocessing or not
+    :int seed: seed for flow from directory
+    :int preprocessing_seed: seed for preprocessing, defaults to None
+    :PreprocessingQueue preprocessing_queue_image: preprocessing queue for images
+    :PreprocessingQueue preprocessing_queue_mask: preprocessing queue for masks
+
+    Raises
+    ------
+    :ValueError: if the output size is not a tuple of length 2
+    :ValueError: if the output size is not a square matrix or a column vector
     """
 
     def __init__(
@@ -35,38 +63,7 @@ class FlowGenerator:
         preprocessing_queue_image: Optional[ImagePreprocessor.PreprocessingQueue] = None,
         preprocessing_queue_mask: Optional[ImagePreprocessor.PreprocessingQueue] = None,
     ):
-        """
-        Initializes the flow generator object,
-        which can be used to read in images for semantic segmentation.
-        Additionally, the reader can apply augmentation on the images,
-        and one-hot encode them on the fly.
-
-        Parameters
-        ----------
-        :string image: path to the image directory
-        :string mask: path to the mask directory
-        :int batch_size: batch size
-        :tuple image_size: image size
-        :tuple output_size: output size
-        #! Note: in case the output is a column vector it has to be in the shape (x, 1)
-
-        :int num_classes: number of classes
-
-        Keyword Arguments
-        -----------------
-        :bool shuffle: whether to shuffle the dataset or not
-        :int batch_size: batch size
-        :bool preprocessing_enabled: whether to apply preprocessing or not
-        :int seed: seed for flow from directory
-        :int preprocessing_seed: seed for preprocessing, defaults to None
-        :PreprocessingQueue preprocessing_queue_image: preprocessing queue for images
-        :PreprocessingQueue preprocessing_queue_mask: preprocessing queue for masks
-
-        Raises
-        ------
-        ValueError: if the output size is not a tuple of length 2
-        ValueError: if the output size is not a square matrix or a column vector
-        """
+        
 
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
@@ -96,9 +93,7 @@ class FlowGenerator:
 
         Returns
         -------
-        :returns: length of the dataset
-        :rtype: int
-
+        :returns int: length of the dataset
         """
 
         return len(os.listdir(os.path.join(self.image_path, "img")))
@@ -143,7 +138,7 @@ class FlowGenerator:
             raise ValueError("Both queues must be passed or none")
 
         self.train_generator = zip(image_generator, mask_generator)
-        self.train_generator = self.preprocess(self.train_generator)
+        self.train_generator = self.__preprocess(self.train_generator)
 
     def get_generator(self):
         """
@@ -151,13 +146,11 @@ class FlowGenerator:
 
         Returns
         -------
-        :return: generator object
-        :rtype: generator
-
+        :return ImageDataGenerator: generator object
         """
         return self.train_generator
 
-    def preprocess(self, generator_zip):
+    def __preprocess(self, generator_zip):
         """
         Preprocessor function encapsulates both the image, and mask generator objects.
         Augments the images and masks and onehot encodes the masks
@@ -169,8 +162,7 @@ class FlowGenerator:
 
         Returns
         -------
-        :return: generator batch of image and mask
-        :rtype: batch(tuple)
+        :return tuple(tf.Tensor,tf.Tensor): generator batch of image and mask
         """
         for (img, mask) in generator_zip:
             if self.preprocessing_enabled:
