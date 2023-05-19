@@ -87,7 +87,7 @@ class FlowGenerator:
         self.__make_generator()
         print("Reading images from: ", self.image_path)
 
-    def get_dataset_size(self):
+    def get_dataset_size(self) -> int:
         """
         Returns the length of the dataset
 

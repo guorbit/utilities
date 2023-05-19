@@ -30,7 +30,7 @@ class PreprocessingQueue:
         for i in self.arguments:
             i["seed"] = seed
 
-    def get_queue_length(self):
+    def get_queue_length(self) -> int:
         """
         Returns the length of the queue
 
@@ -41,7 +41,7 @@ class PreprocessingQueue:
         return len(self.queue)
 
 
-def generate_default_queue(seed=0):
+def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQueue]:
     """
     Generates the default processing queue
 
@@ -84,7 +84,7 @@ def generate_default_queue(seed=0):
     return image_queue, mask_queue
 
 
-def onehot_encode(masks, output_size, num_classes):
+def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     """
     Function that one-hot encodes masks
 
@@ -96,7 +96,7 @@ def onehot_encode(masks, output_size, num_classes):
     -------
     :return tf.Tensor: Batch of one-hot encoded masks
     """
-    encoded = np.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
+    encoded = tf.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
     for i in range(num_classes):
         encoded[:, :, i] = tf.squeeze((masks == i).astype(int))
     return encoded
@@ -112,7 +112,7 @@ def augmentation_pipeline(
     output_reshape: Optional[tuple[int, int]] = None,
     channels: int = 3,
     seed: int = 0,
-):
+) -> tuple[tf.Tensor, tf.Tensor]:
     """
     Function that can execute a set of predifined augmentation functions
     stored in a PreprocessingQueue object. It augments both the image and the mask
@@ -168,7 +168,7 @@ def augmentation_pipeline(
     return image, mask
 
 
-def flatten(image, input_size, channels=1):
+def flatten(image, input_size, channels=1) -> tf.Tensor:
     """flatten
     Function that flattens an image preserving the number of channels
 

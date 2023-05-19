@@ -294,7 +294,7 @@ def image_stich(
     return ims
 
 
-def __preprocess_mask_image(mask_image):
+def __preprocess_mask_image(mask_image) -> NDArray[np.int16]:
     """
     Preprocesses mask image to be used in training. removes dimensionality from 3 to 2
     and sets values to class indices.
