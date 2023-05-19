@@ -28,7 +28,7 @@ class FlowGenerator:
     :int batch_size: batch size
     :tuple image_size: image size
     :tuple output_size: output size
-    
+
 
     :int num_classes: number of classes
 
@@ -60,11 +60,11 @@ class FlowGenerator:
         preprocessing_enabled: bool = True,
         seed: int = 909,
         preprocessing_seed: Optional[int] = None,
-        preprocessing_queue_image: Optional[ImagePreprocessor.PreprocessingQueue] = None,
+        preprocessing_queue_image: Optional[
+            ImagePreprocessor.PreprocessingQueue
+        ] = None,
         preprocessing_queue_mask: Optional[ImagePreprocessor.PreprocessingQueue] = None,
     ):
-        
-
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
         if output_size[1] != 1 and output_size[0] != output_size[1]:
@@ -114,7 +114,7 @@ class FlowGenerator:
 
         image_generator = image_datagen.flow_from_directory(
             self.image_path,
-            class_mode=None, # type: ignore
+            class_mode=None,  # type: ignore
             seed=self.seed,
             batch_size=self.batch_size,
             target_size=self.image_size,
@@ -122,19 +122,25 @@ class FlowGenerator:
 
         mask_generator = mask_datagen.flow_from_directory(
             self.mask_path,
-            class_mode=None, # type: ignore
+            class_mode=None,  # type: ignore
             seed=self.seed,
             batch_size=self.batch_size,
             target_size=self.output_size,
             color_mode="grayscale",
         )
-        if self.preprocessing_queue_image is None and self.preprocessing_queue_mask is None:
+        if (
+            self.preprocessing_queue_image is None
+            and self.preprocessing_queue_mask is None
+        ):
             #!Possibly in the wrong place as it has to be regenerated every time
             (
                 self.preprocessing_queue_image,
                 self.preprocessing_queue_mask,
             ) = ImagePreprocessor.generate_default_queue()
-        elif self.preprocessing_queue_image is None or self.preprocessing_queue_mask is None:
+        elif (
+            self.preprocessing_queue_image is None
+            or self.preprocessing_queue_mask is None
+        ):
             raise ValueError("Both queues must be passed or none")
 
         self.train_generator = zip(image_generator, mask_generator)
@@ -164,9 +170,9 @@ class FlowGenerator:
         -------
         :return tuple(tf.Tensor,tf.Tensor): generator batch of image and mask
         """
-        for (img, mask) in generator_zip:
+        for img, mask in generator_zip:
             if self.preprocessing_enabled:
-                for i_image,i_mask in zip(img, mask):
+                for i_image, i_mask in zip(img, mask):
                     # random state for reproducibility
                     if self.preprocessing_seed is None:
                         image_seed = np.random.randint(0, 100000)
@@ -175,15 +181,15 @@ class FlowGenerator:
                         image_seed = state.randint(0, 100000)
 
                     i_image, i_mask = ImagePreprocessor.augmentation_pipeline(
-                        image = i_image,
-                        mask = i_mask,
-                        input_size = self.image_size,
-                        output_size = self.output_size,
-                        output_reshape = self.output_reshape,
+                        image=i_image,
+                        mask=i_mask,
+                        input_size=self.image_size,
+                        output_size=self.output_size,
+                        output_reshape=self.output_reshape,
                         seed=image_seed,
                         #!both preprocessing queues are assigned by this time
-                        image_queue=self.preprocessing_queue_image, # type: ignore
-                        mask_queue=self.preprocessing_queue_mask, # type: ignore
+                        image_queue=self.preprocessing_queue_image,  # type: ignore
+                        mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
             mask = ImagePreprocessor.onehot_encode(
                 mask, self.output_size, self.num_classes

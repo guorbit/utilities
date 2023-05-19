@@ -20,7 +20,8 @@ def get_distribution_seg(path, files: list[str], num_classes: int = 7):
 
     Returns
     -------
-    :tupple(dict, dict): a tuple containing the distribution of classes and the number of files containing each class
+    :tupple(dict, dict): a tuple containing the distribution of \
+    classes and the number of files containing each class
     """
 
     set_of_files = set(files)
@@ -33,12 +34,12 @@ def get_distribution_seg(path, files: list[str], num_classes: int = 7):
     for file in tqdm(set_of_files):
         img = Image.open(os.path.join(path, file))
         size = img.size
-        max = size[0] * size[1]
+        max_pixels = size[0] * size[1]
         img = np.array(img)
         for i in range(num_classes):
-            sum = np.sum(img == i)
-            distribution[i] += sum / max
-            if sum > 0:
+            class_sum = np.sum(img == i)
+            distribution[i] += class_sum / max_pixels
+            if class_sum > 0:
                 df[i] += 1
 
     return distribution, df
@@ -46,7 +47,7 @@ def get_distribution_seg(path, files: list[str], num_classes: int = 7):
 
 
 if __name__ == "__main__":
-    path = "cut_masks"
-    files = os.listdir(path)
-    dist = get_distribution_seg(path, files)
+    mask_path = "cut_masks"
+    mask_files = os.listdir(mask_path)
+    dist = get_distribution_seg(mask_path, mask_files)
     print(dist)
