@@ -8,6 +8,7 @@ from typing import Optional
 
 import numpy as np
 import tensorflow as tf
+import cv2
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
 
@@ -286,8 +287,8 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_enabled = preprocessing_enabled
         self.preprocessing_seed = preprocessing_seed
 
-        self.image_filenames = os.listdir(os.path.join(self.image_path, "img"))
-        self.mask_filenames = os.listdir(os.path.join(self.mask_path, "mask"))
+        self.image_filenames = os.listdir(os.path.join(self.image_path))
+        self.mask_filenames = os.listdir(os.path.join(self.mask_path))
 
         self.image_batch_store = np.zeros(
             (1, self.batch_size, image_size[0], image_size[1], self.n_channels)
@@ -358,31 +359,49 @@ class FlowGeneratorExperimental(Sequence):
                 self.n_channels,
             )
         )
-        batch_masks = np.zeros(
-            (
-                n,
-                self.mini_batch,
-                self.output_size[0],
-                self.output_size[1],
-                self.num_classes,
+        if self.output_size[1] == 1:
+            column = True
+            batch_masks = np.zeros((n, self.mini_batch, self.output_size[0],self.num_classes))
+        else:
+            column = False
+            batch_masks = np.zeros(
+                (
+                    n,
+                    self.mini_batch,
+                    self.output_size[0],
+                    self.output_size[1],
+                    self.num_classes,
+                )
             )
-        )
 
         # preprocess and assign images and masks to the batch
         for i in range(n):
             for j in range(self.mini_batch):
-                image = np.load(
-                    os.path.join(self.image_path, "img", batch_image_filenames[j])
+                image = cv2.imread(
+                    os.path.join(self.image_path, batch_image_filenames[j]),
+                    cv2.IMREAD_COLOR,
                 )
-                mask = np.load(
-                    os.path.join(self.mask_path, "mask", batch_mask_filenames[j])
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                image = cv2.resize(image, self.image_size)
+                image = np.asarray(image)
+
+                mask = cv2.imread(
+                    os.path.join(self.mask_path, batch_mask_filenames[j]),
+                    cv2.IMREAD_GRAYSCALE,
                 )
+                mask = cv2.resize(mask, self.output_size)
+                mask = np.asarray(mask).reshape(self.output_size)
+                # np.load(
+                #     os.path.join(self.image_path, batch_image_filenames[j])
+                # )
+                # mask = np.load(
+                #     os.path.join(self.mask_path, batch_mask_filenames[j])
+                # )
 
                 # for now it is assumed that n is 1
                 batch_images[i, j, :, :, :] = image[:, :, self.channel_mask]
 
-                if self.output_size[1] == 1:
-                    batch_masks = batch_masks.reshape((-1, 1))  # or batch_masks[:, np.newaxis]
+                
 
                 if self.preprocessing_enabled:
                     if self.preprocessing_seed is None:
@@ -405,10 +424,13 @@ class FlowGeneratorExperimental(Sequence):
                         image_queue=self.preprocessing_queue_image,  # type: ignore
                         mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
-
-                batch_masks[i, j, :, :, :] = ImagePreprocessor.onehot_encode(
-                    mask, self.output_size, self.num_classes
-                )
+                    
+                batch_masks[i, j, : , 0] = tf.squeeze(mask)
+            
+            batch_masks[i, :,:,:] = ImagePreprocessor.onehot_encode(
+                batch_masks[i, :,:,0], self.output_size, self.num_classes
+            )
+           
 
         # chaches the batch
         self.image_batch_store = batch_images
@@ -426,12 +448,12 @@ class FlowGeneratorExperimental(Sequence):
             self.read_batch(index, index + self.batch_size)
 
         # slices new batch
-        store_index = (index - self.validity_index) % self.mini_batch
+        store_index = (index - (self.validity_index-self.batch_size)) // self.mini_batch
 
-        batch_images = self.image_batch_store[store_index, :, :, :, :]
-        batch_masks = self.mask_batch_store[store_index, :, :, :, :]
+        batch_images = self.image_batch_store[store_index,...]
+        batch_masks = self.mask_batch_store[store_index,...]
 
-        tf.squeeze(batch_masks, axis=2)
+        
 
         return np.array(batch_images), np.array(batch_masks)
 

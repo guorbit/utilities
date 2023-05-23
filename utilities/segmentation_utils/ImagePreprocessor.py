@@ -109,7 +109,7 @@ def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     """
     encoded = np.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
     for i in range(num_classes):
-        encoded[:, :, i] = (masks == i).astype(int)
+        encoded[:, :, i] = tf.squeeze((masks == i))
     encoded = tf.convert_to_tensor(encoded)
     return encoded
 
