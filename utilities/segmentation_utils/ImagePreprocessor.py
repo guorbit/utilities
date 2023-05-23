@@ -1,8 +1,19 @@
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Protocol
 
 import numpy as np
 import tensorflow as tf
+
+
+class PreprocessorInterface(Protocol):
+    queue: list[Callable]
+    arguments: list[Dict]
+
+    def update_seed(self, seed: int) -> None:
+        ...
+
+    def get_queue_length(self) -> int:
+        ...
 
 
 @dataclass
@@ -98,7 +109,7 @@ def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     """
     encoded = np.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
     for i in range(num_classes):
-        encoded[:, :, i] = tf.squeeze((masks == i).astype(int))
+        encoded[:, :, i] = (masks == i).astype(int)
     encoded = tf.convert_to_tensor(encoded)
     return encoded
 
@@ -166,6 +177,9 @@ def augmentation_pipeline(
     # flattens masks out to the correct output shape
     if output_size[1] == 1:
         mask = flatten(mask, output_size, channels=1)
+
+    image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
+
     return image, mask
 
 
