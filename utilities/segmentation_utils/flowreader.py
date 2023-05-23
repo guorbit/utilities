@@ -7,7 +7,9 @@ import os
 from typing import Optional
 
 import numpy as np
+import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
+from keras.utils import Sequence
 
 from utilities.segmentation_utils import ImagePreprocessor
 
@@ -39,14 +41,16 @@ class FlowGenerator:
     :bool preprocessing_enabled: whether to apply preprocessing or not
     :int seed: seed for flow from directory
     :int preprocessing_seed: seed for preprocessing, defaults to None
-    :PreprocessingQueue preprocessing_queue_image: preprocessing queue for images
-    :PreprocessingQueue preprocessing_queue_mask: preprocessing queue for masks
 
     Raises
     ------
     :ValueError: if the output size is not a tuple of length 2
     :ValueError: if the output size is not a square matrix or a column vector
     """
+
+    preprocessing_seed = None
+    preprocessing_queue_image = None
+    preprocessing_queue_mask = None
 
     def __init__(
         self,
@@ -60,10 +64,6 @@ class FlowGenerator:
         preprocessing_enabled: bool = True,
         seed: int = 909,
         preprocessing_seed: Optional[int] = None,
-        preprocessing_queue_image: Optional[
-            ImagePreprocessor.PreprocessingQueue
-        ] = None,
-        preprocessing_queue_mask: Optional[ImagePreprocessor.PreprocessingQueue] = None,
     ):
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
@@ -81,8 +81,6 @@ class FlowGenerator:
         self.shuffle = shuffle
         self.seed = seed
         self.preprocessing_enabled = preprocessing_enabled
-        self.preprocessing_queue_image = preprocessing_queue_image
-        self.preprocessing_queue_mask = preprocessing_queue_mask
         self.preprocessing_seed = preprocessing_seed
         self.__make_generator()
         print("Reading images from: ", self.image_path)
@@ -97,6 +95,22 @@ class FlowGenerator:
         """
 
         return len(os.listdir(os.path.join(self.image_path, "img")))
+
+    def set_preprocessing_pipeline(
+        self,
+        preprocessing_queue_image: ImagePreprocessor.PreprocessorInterface,
+        preprocessing_queue_mask: ImagePreprocessor.PreprocessorInterface,
+    ) -> None:
+        """
+        Sets the preprocessing pipeline
+
+        Parameters
+        ----------
+        :PreprocessingQueue preprocessing_queue_image: preprocessing queue for images
+        :PreprocessingQueue preprocessing_queue_mask: preprocessing queue for masks
+        """
+        self.preprocessing_queue_image = preprocessing_queue_image
+        self.preprocessing_queue_mask = preprocessing_queue_mask
 
     def __make_generator(self):
         """
@@ -195,3 +209,236 @@ class FlowGenerator:
                 mask, self.output_size, self.num_classes
             )
             yield (img, mask)
+
+
+class FlowGeneratorExperimental(Sequence):
+    """
+    Initializes the flow generator object,
+    which can be used to read in images for semantic segmentation.
+    Additionally, the reader can apply augmentation on the images,
+    and one-hot encode them on the fly.
+    
+    Note: in case the output is a column vector it has to be in the shape (x, 1)
+    Note: this is an experimental version of the flow generator, which uses a \
+    custom implemented dataloader instead of the keras ImageDataGenerator
+    
+    Parameters
+    ----------
+    :string image: path to the image directory
+    :string mask: path to the mask directory
+    :int batch_size: batch size
+    :tuple image_size: image size
+    :tuple output_size: output size
+
+
+    :int num_classes: number of classes
+
+    Keyword Arguments
+    -----------------
+    :bool shuffle: whether to shuffle the dataset or not
+    :int batch_size: batch size
+    :bool preprocessing_enabled: whether to apply preprocessing or not
+    :int seed: seed for flow from directory
+    :int preprocessing_seed: seed for preprocessing, defaults to None
+
+    Raises
+    ------
+    :ValueError: if the output size is not a tuple of length 2
+    :ValueError: if the output size is not a square matrix or a column vector
+    """
+
+    preprocessing_seed = None
+    preprocessing_queue_image = None
+    preprocessing_queue_mask = None
+
+    def __init__(
+        self,
+        image_path: str,
+        mask_path: str,
+        image_size: tuple[int, int],
+        output_size: tuple[int, int],
+        channel_mask: list[bool],
+        num_classes: int,
+        shuffle: bool = True,
+        batch_size: int = 2,
+        preprocessing_enabled: bool = True,
+        seed: int = 909,
+        preprocessing_seed: Optional[int] = None,
+    ):
+        if len(output_size) != 2:
+            raise ValueError("The output size has to be a tuple of length 2")
+        if output_size[1] != 1 and output_size[0] != output_size[1]:
+            raise ValueError(
+                "The output size has to be a square matrix or a column vector"
+            )
+
+        self.image_path = image_path
+        self.mask_path = mask_path
+        self.batch_size = batch_size
+        self.mini_batch = batch_size
+        self.image_size = image_size
+        self.output_size = output_size
+        self.channel_mask = np.array(channel_mask)
+        self.n_channels = np.sum(channel_mask)
+        self.num_classes = num_classes
+        self.shuffle = shuffle
+        self.seed = seed
+        self.preprocessing_enabled = preprocessing_enabled
+        self.preprocessing_seed = preprocessing_seed
+
+        self.image_filenames = os.listdir(os.path.join(self.image_path, "img"))
+        self.mask_filenames = os.listdir(os.path.join(self.mask_path, "mask"))
+
+        self.image_batch_store = np.zeros(
+            (1, self.batch_size, image_size[0], image_size[1], self.n_channels)
+        )
+        self.mask_batch_store = np.zeros((1, self.batch_size, 1, 1, num_classes))
+        self.validity_index = 0
+
+        if self.output_size[1] == 1:
+            # only enters if the output is a column vector
+            # such no need to define it otherwise
+            dimension = math.sqrt(self.output_size[0])
+            self.output_reshape = (int(dimension), int(dimension))
+        else:
+            self.output_reshape = None
+
+        print("Reading images from: ", self.image_path)
+
+    def set_preprocessing_pipeline(
+        self,
+        preprocessing_queue_image: ImagePreprocessor.PreprocessorInterface,
+        preprocessing_queue_mask: ImagePreprocessor.PreprocessorInterface,
+    ) -> None:
+        """
+        Sets the preprocessing pipeline
+
+        Parameters
+        ----------
+        :PreprocessingQueue preprocessing_queue_image: preprocessing queue for images
+        :PreprocessingQueue preprocessing_queue_mask: preprocessing queue for masks
+        """
+        self.preprocessing_queue_image = preprocessing_queue_image
+        self.preprocessing_queue_mask = preprocessing_queue_mask
+
+    def set_mini_batch_size(self, batch_size: int) -> None:
+        """
+        Function to set the appropriate minibatch size. Required to allign batch size in the reader with the model.\
+        Does not change the batch size of the reader.
+
+        Parameters
+        ----------
+        :int batch_size: the mini batch size
+
+        Raises
+        ------
+        :raises ValueError: if the mini batch size is larger than the batch size
+        :raises ValueError: if the batch size is not divisible by the mini batch size
+        """
+        if batch_size > self.batch_size:
+            raise ValueError("The mini batch size cannot be larger than the batch size")
+        if self.batch_size % batch_size != 0:
+            raise ValueError("The batch size must be divisible by the mini batch size")
+        self.mini_batch = batch_size
+
+    def read_batch(self, start: int, end: int) -> None:
+        # read image batch
+        batch_image_filenames = self.image_filenames[start:end]
+        batch_mask_filenames = self.mask_filenames[start:end]
+
+        # calculate number of mini batches in a batch
+        n = self.batch_size // self.mini_batch
+
+        batch_images = np.zeros(
+            (
+                n,
+                self.mini_batch,
+                self.image_size[0],
+                self.image_size[1],
+                self.n_channels,
+            )
+        )
+        batch_masks = np.zeros(
+            (
+                n,
+                self.mini_batch,
+                self.output_size[0],
+                self.output_size[1],
+                self.num_classes,
+            )
+        )
+
+        # preprocess and assign images and masks to the batch
+        for i in range(n):
+            for j in range(self.mini_batch):
+                image = np.load(
+                    os.path.join(self.image_path, "img", batch_image_filenames[j])
+                )
+                mask = np.load(
+                    os.path.join(self.mask_path, "mask", batch_mask_filenames[j])
+                )
+
+                # for now it is assumed that n is 1
+                batch_images[i, j, :, :, :] = image[:, :, self.channel_mask]
+
+                if self.output_size[1] == 1:
+                    batch_masks = batch_masks.reshape((-1, 1))  # or batch_masks[:, np.newaxis]
+
+                if self.preprocessing_enabled:
+                    if self.preprocessing_seed is None:
+                        image_seed = np.random.randint(0, 100000)
+                    else:
+                        state = np.random.RandomState(self.preprocessing_seed)
+                        image_seed = state.randint(0, 100000)
+
+                    (
+                        batch_images[i, j, :, :, :],
+                        mask,
+                    ) = ImagePreprocessor.augmentation_pipeline(
+                        image=batch_images[i, j, :, :, :],
+                        mask=mask,
+                        input_size=self.image_size,
+                        output_size=self.output_size,
+                        output_reshape=self.output_reshape,
+                        seed=image_seed,
+                        #!both preprocessing queues are assigned by this time
+                        image_queue=self.preprocessing_queue_image,  # type: ignore
+                        mask_queue=self.preprocessing_queue_mask,  # type: ignore
+                    )
+
+                batch_masks[i, j, :, :, :] = ImagePreprocessor.onehot_encode(
+                    mask, self.output_size, self.num_classes
+                )
+
+        # chaches the batch
+        self.image_batch_store = batch_images
+        self.mask_batch_store = batch_masks
+
+        # required to check when to read the next batch
+        self.validity_index = end
+
+    def __len__(self):
+        return int(np.ceil(len(self.image_filenames) / float(self.batch_size)))
+
+    def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
+        # check if the batch is already cached
+        if index == self.validity_index:
+            self.read_batch(index, index + self.batch_size)
+
+        # slices new batch
+        store_index = (index - self.validity_index) % self.mini_batch
+
+        batch_images = self.image_batch_store[store_index, :, :, :, :]
+        batch_masks = self.mask_batch_store[store_index, :, :, :, :]
+
+        tf.squeeze(batch_masks, axis=2)
+
+        return np.array(batch_images), np.array(batch_masks)
+
+    def on_epoch_end(self):
+        # Shuffle image and mask filenames
+        if self.shuffle:
+            np.random.seed(self.seed)
+            np.random.shuffle(self.image_filenames)
+            np.random.seed(self.seed)
+            np.random.shuffle(self.mask_filenames)
