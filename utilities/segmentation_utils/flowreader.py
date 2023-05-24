@@ -291,11 +291,9 @@ class FlowGeneratorExperimental(Sequence):
         self.mask_filenames = os.listdir(os.path.join(self.mask_path))
 
         self.image_batch_store = np.zeros(
-            (1, self.batch_size, image_size[0], image_size[1], self.n_channels),
-           
+            (1, self.batch_size, image_size[0], image_size[1], self.n_channels)
         )
-        self.mask_batch_store = np.zeros((1, self.batch_size, 1, 1, num_classes),
-                                         dtype=np.uint8)
+        self.mask_batch_store = np.zeros((1, self.batch_size, 1, 1, num_classes))
         self.validity_index = 0
 
         if self.output_size[1] == 1:
@@ -347,7 +345,7 @@ class FlowGeneratorExperimental(Sequence):
     def read_batch(self, start: int, end: int) -> None:
         # read image batch
         batch_image_filenames = self.image_filenames[start:end]
-        batch_mask_filenames = self.mask_filenames[start:end]
+        batch_mask_filenames = batch_image_filenames
 
         # calculate number of mini batches in a batch
         n = self.batch_size // self.mini_batch
@@ -359,15 +357,11 @@ class FlowGeneratorExperimental(Sequence):
                 self.image_size[0],
                 self.image_size[1],
                 self.n_channels,
-            ),
-            
+            )
         )
         if self.output_size[1] == 1:
             column = True
-            batch_masks = np.zeros(
-                (n, self.mini_batch, self.output_size[0], self.num_classes),
-                dtype=np.uint8,
-            )
+            batch_masks = np.zeros((n, self.mini_batch, self.output_size[0],self.num_classes))
         else:
             column = False
             batch_masks = np.zeros(
@@ -377,8 +371,7 @@ class FlowGeneratorExperimental(Sequence):
                     self.output_size[0],
                     self.output_size[1],
                     self.num_classes,
-                ),
-                dtype=np.uint8,
+                )
             )
 
         # preprocess and assign images and masks to the batch
@@ -429,12 +422,13 @@ class FlowGeneratorExperimental(Sequence):
                         image_queue=self.preprocessing_queue_image,  # type: ignore
                         mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
-
-                batch_masks[i, j, :, 0] = tf.squeeze(mask)
-
-            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
-                batch_masks[i, :, :, 0], self.output_size, self.num_classes
+                    
+                batch_masks[i, j, : , 0] = tf.squeeze(mask)
+            
+            batch_masks[i, :,:,:] = ImagePreprocessor.onehot_encode(
+                batch_masks[i, :,:,0], self.output_size, self.num_classes
             )
+           
 
         # chaches the batch
         self.image_batch_store = batch_images
@@ -448,23 +442,22 @@ class FlowGeneratorExperimental(Sequence):
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
+        if index < self.validity_index-self.batch_size:
+            self.validity_index = 0
+
         if index == self.validity_index:
             self.read_batch(index, index + self.batch_size)
 
         # slices new batch
-        store_index = (
-            index - (self.validity_index - self.batch_size)
-        ) // self.mini_batch
+        store_index = (index - (self.validity_index-self.batch_size)) // self.mini_batch
 
-        batch_images = self.image_batch_store[store_index, ...]
-        batch_masks = self.mask_batch_store[store_index, ...]
+        batch_images = self.image_batch_store[store_index,...]
+        batch_masks = self.mask_batch_store[store_index,...]
 
         return np.array(batch_images), np.array(batch_masks)
 
     def on_epoch_end(self):
         # Shuffle image and mask filenames
+        
         if self.shuffle:
-            np.random.seed(self.seed)
             np.random.shuffle(self.image_filenames)
-            np.random.seed(self.seed)
-            np.random.shuffle(self.mask_filenames)
