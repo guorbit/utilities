@@ -291,9 +291,11 @@ class FlowGeneratorExperimental(Sequence):
         self.mask_filenames = os.listdir(os.path.join(self.mask_path))
 
         self.image_batch_store = np.zeros(
-            (1, self.batch_size, image_size[0], image_size[1], self.n_channels)
+            (1, self.batch_size, image_size[0], image_size[1], self.n_channels),
+           
         )
-        self.mask_batch_store = np.zeros((1, self.batch_size, 1, 1, num_classes))
+        self.mask_batch_store = np.zeros((1, self.batch_size, 1, 1, num_classes),
+                                         dtype=np.uint8)
         self.validity_index = 0
 
         if self.output_size[1] == 1:
@@ -357,11 +359,15 @@ class FlowGeneratorExperimental(Sequence):
                 self.image_size[0],
                 self.image_size[1],
                 self.n_channels,
-            )
+            ),
+            
         )
         if self.output_size[1] == 1:
             column = True
-            batch_masks = np.zeros((n, self.mini_batch, self.output_size[0],self.num_classes))
+            batch_masks = np.zeros(
+                (n, self.mini_batch, self.output_size[0], self.num_classes),
+                dtype=np.uint8,
+            )
         else:
             column = False
             batch_masks = np.zeros(
@@ -371,7 +377,8 @@ class FlowGeneratorExperimental(Sequence):
                     self.output_size[0],
                     self.output_size[1],
                     self.num_classes,
-                )
+                ),
+                dtype=np.uint8,
             )
 
         # preprocess and assign images and masks to the batch
@@ -401,8 +408,6 @@ class FlowGeneratorExperimental(Sequence):
                 # for now it is assumed that n is 1
                 batch_images[i, j, :, :, :] = image[:, :, self.channel_mask]
 
-                
-
                 if self.preprocessing_enabled:
                     if self.preprocessing_seed is None:
                         image_seed = np.random.randint(0, 100000)
@@ -424,13 +429,12 @@ class FlowGeneratorExperimental(Sequence):
                         image_queue=self.preprocessing_queue_image,  # type: ignore
                         mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
-                    
-                batch_masks[i, j, : , 0] = tf.squeeze(mask)
-            
-            batch_masks[i, :,:,:] = ImagePreprocessor.onehot_encode(
-                batch_masks[i, :,:,0], self.output_size, self.num_classes
+
+                batch_masks[i, j, :, 0] = tf.squeeze(mask)
+
+            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
+                batch_masks[i, :, :, 0], self.output_size, self.num_classes
             )
-           
 
         # chaches the batch
         self.image_batch_store = batch_images
@@ -448,12 +452,12 @@ class FlowGeneratorExperimental(Sequence):
             self.read_batch(index, index + self.batch_size)
 
         # slices new batch
-        store_index = (index - (self.validity_index-self.batch_size)) // self.mini_batch
+        store_index = (
+            index - (self.validity_index - self.batch_size)
+        ) // self.mini_batch
 
-        batch_images = self.image_batch_store[store_index,...]
-        batch_masks = self.mask_batch_store[store_index,...]
-
-        
+        batch_images = self.image_batch_store[store_index, ...]
+        batch_masks = self.mask_batch_store[store_index, ...]
 
         return np.array(batch_images), np.array(batch_masks)
 
