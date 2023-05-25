@@ -302,7 +302,7 @@ class FlowGeneratorExperimental(Sequence):
             dimension = math.sqrt(self.output_size[0])
             self.output_reshape = (int(dimension), int(dimension))
         else:
-            self.output_reshape = None
+            self.output_reshape = self.output_size
 
         print("Reading images from: ", self.image_path)
 
@@ -346,7 +346,7 @@ class FlowGeneratorExperimental(Sequence):
         # read image batch
         batch_image_filenames = self.image_filenames[start:end]
         batch_mask_filenames = batch_image_filenames
-
+        tf.print(batch_image_filenames)
         # calculate number of mini batches in a batch
         n = self.batch_size // self.mini_batch
 
@@ -384,9 +384,7 @@ class FlowGeneratorExperimental(Sequence):
             for j in range(self.mini_batch):
                 image = Image.open(
                     os.path.join(self.image_path, batch_image_filenames[j])
-
-                ).resize(self.image_size, Image.BICUBIC)
-                # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                ).resize(self.image_size, Image.ANTIALIAS)
 
                 image = np.array(image)
                 image = image / 255
@@ -396,16 +394,6 @@ class FlowGeneratorExperimental(Sequence):
                 ).resize(self.output_reshape)
                 
                 mask = np.array(mask)
-                mask = np.reshape(mask, self.output_size)
-                # np.load(
-                #     os.path.join(self.image_path, batch_image_filenames[j])
-                # )
-                # mask = np.load(
-                #     os.path.join(self.mask_path, batch_mask_filenames[j])
-                # )
-
-                # for now it is assumed that n is 1
-
                 image = image[:, :, self.channel_mask]
 
                 batch_images[i, j, :, :, :] = image
@@ -431,6 +419,8 @@ class FlowGeneratorExperimental(Sequence):
                         image_queue=self.preprocessing_queue_image,  # type: ignore
                         mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
+                
+                mask = np.reshape(mask, self.output_size)
 
                 raw_masks[j, :, :] = mask
 
@@ -450,24 +440,27 @@ class FlowGeneratorExperimental(Sequence):
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
         if index < self.validity_index - self.batch_size // self.mini_batch:
+          
             self.validity_index = 0
 
         if index == self.validity_index:
+
             self.read_batch(index * self.batch_size, (index + 1) * self.batch_size)
             self.validity_index = (self.batch_size // self.mini_batch) + index
 
         # slices new batch
-        store_index = (
-            index - (self.validity_index - self.batch_size)
-        ) // self.mini_batch
+        store_index = (self.batch_size//self.mini_batch) - (self.validity_index - index)
+       
 
         batch_images = self.image_batch_store[store_index, ...]
         batch_masks = self.mask_batch_store[store_index, ...]
 
-        return batch_images, batch_masks
+        return tf.convert_to_tensor(batch_images), tf.convert_to_tensor(batch_masks)
 
     def on_epoch_end(self):
         # Shuffle image and mask filenames
-
+      
         if self.shuffle:
+   
             np.random.shuffle(self.image_filenames)
+         

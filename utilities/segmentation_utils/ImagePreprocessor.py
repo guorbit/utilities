@@ -178,7 +178,7 @@ def augmentation_pipeline(
     if output_size[1] == 1:
         mask = flatten(mask, output_size, channels=1)
 
-    image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
+    #image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
 
     return image, mask
 
