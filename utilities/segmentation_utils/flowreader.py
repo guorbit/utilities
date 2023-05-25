@@ -11,6 +11,7 @@ import tensorflow as tf
 from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
+from tqdm import tqdm
 
 from utilities.segmentation_utils import ImagePreprocessor
 
@@ -287,8 +288,16 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_enabled = preprocessing_enabled
         self.preprocessing_seed = preprocessing_seed
 
-        self.image_filenames = os.listdir(os.path.join(self.image_path))
-        self.mask_filenames = os.listdir(os.path.join(self.mask_path))
+        self.image_filenames = sorted(os.listdir(os.path.join(self.image_path)))
+        self.mask_filenames = sorted(os.listdir(os.path.join(self.mask_path)))
+
+        print("Validating dataset...")
+
+        for i_name,m_name in tqdm(zip(self.image_filenames,self.mask_filenames)):
+            if i_name != m_name:
+                raise ValueError("The image and mask directories do not match")
+            
+        
 
         self.image_batch_store = np.zeros(
             (1, self.batch_size, image_size[0], image_size[1], self.n_channels)
@@ -346,7 +355,7 @@ class FlowGeneratorExperimental(Sequence):
         # read image batch
         batch_image_filenames = self.image_filenames[start:end]
         batch_mask_filenames = batch_image_filenames
-        tf.print(batch_image_filenames)
+      
         # calculate number of mini batches in a batch
         n = self.batch_size // self.mini_batch
 
@@ -461,6 +470,7 @@ class FlowGeneratorExperimental(Sequence):
         # Shuffle image and mask filenames
       
         if self.shuffle:
-   
-            np.random.shuffle(self.image_filenames)
+            shuffled_indices = np.random.permutation(len(self.image_filenames))
+            self.image_filenames = self.image_filenames[shuffled_indices]
+            self.mask_filenames = self.mask_filenames[shuffled_indices]
          
