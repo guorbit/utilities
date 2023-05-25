@@ -384,7 +384,8 @@ class FlowGeneratorExperimental(Sequence):
             for j in range(self.mini_batch):
                 image = Image.open(
                     os.path.join(self.image_path, batch_image_filenames[j])
-                ).resize(self.image_size)
+
+                ).resize(self.image_size, Image.BICUBIC)
                 # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
                 image = np.array(image)
