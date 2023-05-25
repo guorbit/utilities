@@ -160,7 +160,7 @@ def augmentation_pipeline(
     -------
     :return tuple(tf.Tensor, tf.Tensor): tuple of the processed image and mask
     """
-    
+
     # reshapes masks, such that transforamtions work properly
     if output_reshape is not None and output_size[1] == 1:
         mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
@@ -178,7 +178,7 @@ def augmentation_pipeline(
     if output_size[1] == 1:
         mask = flatten(mask, output_size, channels=1)
 
-    #image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
+    # image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
 
     return image, mask
 
@@ -202,3 +202,45 @@ def flatten(image, input_size, channels=1) -> tf.Tensor:
     """
     # the 1 is required to preserve the shape similar to the original
     return tf.reshape(image, (input_size[0] * input_size[1], channels))
+
+
+def random_flip_up_down(image, seed=0) -> tf.Tensor:
+    """
+    Function that randomly flips an image up or down
+
+    Parameters
+    ----------
+    :tf.Tensor image: image to be flipped
+
+    Returns
+    -------
+    :return tf.Tensor: flipped image
+    """
+
+    state = np.random.RandomState(seed)
+    flip = state.choice([True, False])
+    if flip:
+        return tf.image.flip_up_down(image)
+    else:
+        return image
+
+
+def random_flip_left_right(image, seed=0) -> tf.Tensor:
+    """
+    Function that randomly flips an image left or right
+
+    Parameters
+    ----------
+    :tf.Tensor image: image to be flipped
+
+    Returns
+    -------
+    :return tf.Tensor: flipped image
+    """
+
+    state = np.random.RandomState(seed)
+    flip = state.choice([True, False])
+    if flip:
+        return tf.image.flip_left_right(image)
+    else:
+        return image
