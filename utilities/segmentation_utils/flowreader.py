@@ -8,7 +8,7 @@ from typing import Optional
 
 import numpy as np
 import tensorflow as tf
-import cv2
+from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
 
@@ -361,7 +361,9 @@ class FlowGeneratorExperimental(Sequence):
         )
         if self.output_size[1] == 1:
             column = True
-            batch_masks = np.zeros((n, self.mini_batch, self.output_size[0],self.num_classes))
+            batch_masks = np.zeros(
+                (n, self.mini_batch, self.output_size[0], self.num_classes)
+            )
         else:
             column = False
             batch_masks = np.zeros(
@@ -376,21 +378,24 @@ class FlowGeneratorExperimental(Sequence):
 
         # preprocess and assign images and masks to the batch
         for i in range(n):
+            raw_masks = np.zeros(
+                (self.mini_batch, self.output_size[0] * self.output_size[1], 1)
+            )
             for j in range(self.mini_batch):
-                image = cv2.imread(
-                    os.path.join(self.image_path, batch_image_filenames[j]),
-                    cv2.IMREAD_COLOR,
-                )
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                image = cv2.resize(image, self.image_size)
-                image = np.asarray(image)
+                image = Image.open(
+                    os.path.join(self.image_path, batch_image_filenames[j])
+                ).resize(self.image_size)
+                # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-                mask = cv2.imread(
-                    os.path.join(self.mask_path, batch_mask_filenames[j]),
-                    cv2.IMREAD_GRAYSCALE,
-                )
-                mask = cv2.resize(mask, self.output_size)
-                mask = np.asarray(mask).reshape(self.output_size)
+                image = np.array(image)
+                image = image / 255
+
+                mask = Image.open(
+                    os.path.join(self.mask_path, batch_mask_filenames[j])
+                ).resize(self.output_reshape)
+                
+                mask = np.array(mask)
+                mask = np.reshape(mask, self.output_size)
                 # np.load(
                 #     os.path.join(self.image_path, batch_image_filenames[j])
                 # )
@@ -399,7 +404,10 @@ class FlowGeneratorExperimental(Sequence):
                 # )
 
                 # for now it is assumed that n is 1
-                batch_images[i, j, :, :, :] = image[:, :, self.channel_mask]
+
+                image = image[:, :, self.channel_mask]
+
+                batch_images[i, j, :, :, :] = image
 
                 if self.preprocessing_enabled:
                     if self.preprocessing_seed is None:
@@ -422,42 +430,43 @@ class FlowGeneratorExperimental(Sequence):
                         image_queue=self.preprocessing_queue_image,  # type: ignore
                         mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
-                    
-                batch_masks[i, j, : , 0] = tf.squeeze(mask)
-            
-            batch_masks[i, :,:,:] = ImagePreprocessor.onehot_encode(
-                batch_masks[i, :,:,0], self.output_size, self.num_classes
+
+                raw_masks[j, :, :] = mask
+
+            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
+                raw_masks, self.output_size, self.num_classes
             )
-           
 
         # chaches the batch
         self.image_batch_store = batch_images
         self.mask_batch_store = batch_masks
 
         # required to check when to read the next batch
-        self.validity_index = end
 
     def __len__(self):
-        return int(np.ceil(len(self.image_filenames) / float(self.batch_size)))
+        return int(np.floor(len(self.image_filenames) / float(self.batch_size)))
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
-        if index < self.validity_index-self.batch_size:
+        if index < self.validity_index - self.batch_size // self.mini_batch:
             self.validity_index = 0
 
         if index == self.validity_index:
-            self.read_batch(index, index + self.batch_size)
+            self.read_batch(index * self.batch_size, (index + 1) * self.batch_size)
+            self.validity_index = (self.batch_size // self.mini_batch) + index
 
         # slices new batch
-        store_index = (index - (self.validity_index-self.batch_size)) // self.mini_batch
+        store_index = (
+            index - (self.validity_index - self.batch_size)
+        ) // self.mini_batch
 
-        batch_images = self.image_batch_store[store_index,...]
-        batch_masks = self.mask_batch_store[store_index,...]
+        batch_images = self.image_batch_store[store_index, ...]
+        batch_masks = self.mask_batch_store[store_index, ...]
 
-        return np.array(batch_images), np.array(batch_masks)
+        return batch_images, batch_masks
 
     def on_epoch_end(self):
         # Shuffle image and mask filenames
-        
+
         if self.shuffle:
             np.random.shuffle(self.image_filenames)

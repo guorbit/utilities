@@ -160,7 +160,7 @@ def augmentation_pipeline(
     -------
     :return tuple(tf.Tensor, tf.Tensor): tuple of the processed image and mask
     """
-
+    
     # reshapes masks, such that transforamtions work properly
     if output_reshape is not None and output_size[1] == 1:
         mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
@@ -201,4 +201,4 @@ def flatten(image, input_size, channels=1) -> tf.Tensor:
     :return tf.Tensor: flattened image
     """
     # the 1 is required to preserve the shape similar to the original
-    return tf.reshape(image, (input_size[0] * input_size[1], 1, channels))
+    return tf.reshape(image, (input_size[0] * input_size[1], channels))
