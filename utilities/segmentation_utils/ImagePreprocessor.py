@@ -107,10 +107,13 @@ def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     -------
     :return tf.Tensor: Batch of one-hot encoded masks
     """
-    encoded = np.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
+    encoded = np.zeros((masks.shape[0], output_size[0], output_size[1], num_classes))
     for i in range(num_classes):
-        encoded[:, :, i] = tf.squeeze((masks == i))
-    encoded = tf.convert_to_tensor(encoded)
+        mask = (masks == i).astype(float)
+        encoded[:, :, :, i] = mask
+    if output_size[1] == 1:
+        encoded = encoded.reshape((masks.shape[0],output_size[0] * output_size[1], num_classes))
+        
     return encoded
 
 
@@ -163,8 +166,10 @@ def augmentation_pipeline(
 
     # reshapes masks, such that transforamtions work properly
     if output_reshape is not None and output_size[1] == 1:
-        mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
-
+        mask = tf.reshape(mask, (output_reshape[0], output_reshape[1]))
+    
+    mask = tf.expand_dims(mask,axis=-1)
+  
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
 
@@ -177,8 +182,11 @@ def augmentation_pipeline(
     # flattens masks out to the correct output shape
     if output_size[1] == 1:
         mask = flatten(mask, output_size, channels=1)
+    else:
+        mask = tf.squeeze(mask, axis=-1)
 
     # image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
+    
 
     return image, mask
 

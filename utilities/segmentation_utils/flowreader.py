@@ -252,6 +252,7 @@ class FlowGeneratorExperimental(Sequence):
     preprocessing_seed = None
     preprocessing_queue_image = None
     preprocessing_queue_mask = None
+    shuffle_counter = 0
 
     def __init__(
         self,
@@ -288,21 +289,23 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_enabled = preprocessing_enabled
         self.preprocessing_seed = preprocessing_seed
 
-        self.image_filenames = sorted(os.listdir(os.path.join(self.image_path)))
-        self.mask_filenames = sorted(os.listdir(os.path.join(self.mask_path)))
+        self.image_filenames = np.array(
+            sorted(os.listdir(os.path.join(self.image_path)))
+        )
+        self.mask_filenames = np.array(sorted(os.listdir(os.path.join(self.mask_path))))
+
+        self.shuffle_filenames()
+
+        self.dataset_size = self.__len__()
 
         print("Validating dataset...")
 
-        for i_name,m_name in tqdm(zip(self.image_filenames,self.mask_filenames)):
+        for i_name, m_name in tqdm(zip(self.image_filenames, self.mask_filenames)):
             if i_name != m_name:
                 raise ValueError("The image and mask directories do not match")
-            
-        
 
-        self.image_batch_store = np.zeros(
-            (1, self.batch_size, image_size[0], image_size[1], self.n_channels)
-        )
-        self.mask_batch_store = np.zeros((1, self.batch_size, 1, 1, num_classes))
+        self.image_batch_store = None
+        self.mask_batch_store = None
         self.validity_index = 0
 
         if self.output_size[1] == 1:
@@ -354,8 +357,11 @@ class FlowGeneratorExperimental(Sequence):
     def read_batch(self, start: int, end: int) -> None:
         # read image batch
         batch_image_filenames = self.image_filenames[start:end]
-        batch_mask_filenames = batch_image_filenames
-      
+        batch_mask_filenames = self.mask_filenames[start:end]
+        for i in range(len(batch_image_filenames)):
+            if batch_image_filenames[i] != batch_mask_filenames[i]:
+                raise ValueError("The image and mask directories do not match")
+
         # calculate number of mini batches in a batch
         n = self.batch_size // self.mini_batch
 
@@ -387,25 +393,30 @@ class FlowGeneratorExperimental(Sequence):
 
         # preprocess and assign images and masks to the batch
         for i in range(n):
-            raw_masks = np.zeros(
-                (self.mini_batch, self.output_size[0] * self.output_size[1], 1)
-            )
+            if column:
+                raw_masks = np.zeros(
+                    (self.mini_batch, self.output_size[0] * self.output_size[1], 1)
+                )
+            else:
+                raw_masks = np.zeros(
+                    (self.mini_batch, self.output_size[0], self.output_size[1])
+                )
+
             for j in range(self.mini_batch):
+                image_index = i * self.mini_batch + j
                 image = Image.open(
-                    os.path.join(self.image_path, batch_image_filenames[j])
+                    os.path.join(self.image_path, batch_image_filenames[image_index])
                 ).resize(self.image_size, Image.ANTIALIAS)
 
                 image = np.array(image)
                 image = image / 255
 
                 mask = Image.open(
-                    os.path.join(self.mask_path, batch_mask_filenames[j])
+                    os.path.join(self.mask_path, batch_mask_filenames[image_index])
                 ).resize(self.output_reshape)
-                
-                mask = np.array(mask)
-                image = image[:, :, self.channel_mask]
 
-                batch_images[i, j, :, :, :] = image
+                mask = np.array(mask)
+                # image = image[:, :, self.channel_mask]
 
                 if self.preprocessing_enabled:
                     if self.preprocessing_seed is None:
@@ -415,10 +426,10 @@ class FlowGeneratorExperimental(Sequence):
                         image_seed = state.randint(0, 100000)
 
                     (
-                        batch_images[i, j, :, :, :],
+                        image,
                         mask,
                     ) = ImagePreprocessor.augmentation_pipeline(
-                        image=batch_images[i, j, :, :, :],
+                        image,
                         mask=mask,
                         input_size=self.image_size,
                         output_size=self.output_size,
@@ -428,12 +439,15 @@ class FlowGeneratorExperimental(Sequence):
                         image_queue=self.preprocessing_queue_image,  # type: ignore
                         mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
-                
-                mask = np.reshape(mask, self.output_size)
+                if column:
+                    mask = np.reshape(mask, self.output_size)
 
-                raw_masks[j, :, :] = mask
+                batch_images[i, j, :, :, :] = image
+                raw_masks[
+                    j, ...
+                ] = mask  # NOTE: this provides the flexibility required to process both column and matrix vectors
 
-            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
+            batch_masks[i, ...] = ImagePreprocessor.onehot_encode(
                 raw_masks, self.output_size, self.num_classes
             )
 
@@ -448,29 +462,34 @@ class FlowGeneratorExperimental(Sequence):
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
+        index = index % self.dataset_size
+
         if index < self.validity_index - self.batch_size // self.mini_batch:
-          
             self.validity_index = 0
 
         if index == self.validity_index:
-
             self.read_batch(index * self.batch_size, (index + 1) * self.batch_size)
             self.validity_index = (self.batch_size // self.mini_batch) + index
 
         # slices new batch
-        store_index = (self.batch_size//self.mini_batch) - (self.validity_index - index)
-       
+        store_index = (self.batch_size // self.mini_batch) - (
+            self.validity_index - index
+        )
 
         batch_images = self.image_batch_store[store_index, ...]
         batch_masks = self.mask_batch_store[store_index, ...]
 
-        return tf.convert_to_tensor(batch_images), tf.convert_to_tensor(batch_masks)
+        return batch_images, batch_masks
 
     def on_epoch_end(self):
         # Shuffle image and mask filenames
-      
+        self.shuffle_filenames()
+
+    def shuffle_filenames(self):
         if self.shuffle:
-            shuffled_indices = np.random.permutation(len(self.image_filenames))
+            state = np.random.RandomState(self.seed + self.shuffle_counter)
+            self.shuffle_counter += 1
+            shuffled_indices = state.permutation(len(self.image_filenames))
+            shuffled_indices = shuffled_indices.astype(int)
             self.image_filenames = self.image_filenames[shuffled_indices]
             self.mask_filenames = self.mask_filenames[shuffled_indices]
-         
