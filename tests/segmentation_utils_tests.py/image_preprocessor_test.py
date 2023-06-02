@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from utilities.segmentation_utils import ImagePreprocessor
 
+from utilities.segmentation_utils import ImagePreprocessor
 
 
 def test_image_onehot_encoder() -> None:
@@ -41,7 +41,7 @@ def test_image_augmentation_pipeline_column() -> None:
     output_size = (256 * 256, 1)
     output_reshape = (256, 256)
 
-    # createing dummy queues
+    # creating dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
         queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
     )
@@ -50,7 +50,7 @@ def test_image_augmentation_pipeline_column() -> None:
     )
 
     image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
-        image, mask, input_size, output_size, output_reshape, image_queue, mask_queue
+        image, mask, input_size, output_size, image_queue, mask_queue,output_reshape
     )
     image_new = image_new.numpy()
     mask_new = mask_new.numpy()
@@ -69,7 +69,7 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
     input_size = (512, 512)
     output_size = (256, 256)
 
-    # createing dummy queues
+    # creating dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
         queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
     )
@@ -93,7 +93,7 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
 
 
 def test_processing_queue() -> None:
-    # createing dummy queues
+    # creating dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
         queue=[lambda seed: seed], arguments=[dict(seed=1)]
     )
@@ -106,7 +106,7 @@ def test_processing_queue() -> None:
 
 
 def test_generate_default_queue() -> None:
-    # createing default queues
+    # creating default queues
     image_queue, mask_queue = ImagePreprocessor.generate_default_queue()
 
     # changing the seed

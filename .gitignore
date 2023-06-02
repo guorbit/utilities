@@ -136,4 +136,10 @@ archive.lnk
 colab_notebook.ipynb
 /.vscode/
 
+/cut_ims/
+/ims/
+
+/cut_masks/
+/masks/
+
 

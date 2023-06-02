@@ -1,8 +1,10 @@
 import os
+
 import numpy as np
 import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
 from pytest import MonkeyPatch
+
 from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.flowreader import FlowGenerator
 

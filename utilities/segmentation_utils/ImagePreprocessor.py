@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional
+
 import numpy as np
 import tensorflow as tf
-
 
 
 @dataclass
@@ -30,19 +30,18 @@ class PreprocessingQueue:
         for i in self.arguments:
             i["seed"] = seed
 
-    def get_queue_length(self):
+    def get_queue_length(self) -> int:
         """
         Returns the length of the queue
 
         Returns
         -------
-        :return: length of the queue
-        :rtype: int
+        :return int: length of the queue
         """
         return len(self.queue)
 
 
-def generate_default_queue(seed=0):
+def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQueue]:
     """
     Generates the default processing queue
 
@@ -85,7 +84,7 @@ def generate_default_queue(seed=0):
     return image_queue, mask_queue
 
 
-def onehot_encode(masks, output_size, num_classes):
+def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     """
     Function that one-hot encodes masks
 
@@ -95,12 +94,12 @@ def onehot_encode(masks, output_size, num_classes):
 
     Returns
     -------
-    :return: Encoded masks
-    :rtype: batch(tf.Tensor)
+    :return tf.Tensor: Batch of one-hot encoded masks
     """
     encoded = np.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
     for i in range(num_classes):
         encoded[:, :, i] = tf.squeeze((masks == i).astype(int))
+    encoded = tf.convert_to_tensor(encoded)
     return encoded
 
 
@@ -109,12 +108,12 @@ def augmentation_pipeline(
     mask,
     input_size: tuple[int, int],
     output_size: tuple[int, int],
-    output_reshape: tuple[int, int] = None,
-    image_queue: PreprocessingQueue = None,
-    mask_queue: PreprocessingQueue = None,
+    image_queue: PreprocessingQueue,
+    mask_queue: PreprocessingQueue,
+    output_reshape: Optional[tuple[int, int]] = None,
     channels: int = 3,
     seed: int = 0,
-):
+) -> tuple[tf.Tensor, tf.Tensor]:
     """
     Function that can execute a set of predifined augmentation functions
     stored in a PreprocessingQueue object. It augments both the image and the mask
@@ -130,16 +129,16 @@ def augmentation_pipeline(
 
     Keyword Arguments
     -----------------
-    :tuple(int, int), optional output_reshape: In case the image is a column vector,
+    :tuple(int, int), optional output_reshape: In case the image is a column vector, \
     this is the shape it should be reshaped to. Defaults to None.
-    
-    :PreprocessingQueue, optional mask_queue image_queue: 
+
+    :PreprocessingQueue, optional mask_queue image_queue: \
     Augmentation processing queue for images, defaults to None
 
-    :PreprocessingQueue, optional mask_queue: Augmentation processing queue
+    :PreprocessingQueue, optional mask_queue: Augmentation processing queue \
     for masks, defaults to None
-    
-    :int, optional channels: Number of bands in the image, defaults to 3
+
+    :int, optional channels: Number of bands in the image, defaults to 3 \
     :int, optional seed: The seed to be used in the pipeline, defaults to 0
 
     Raises
@@ -148,12 +147,11 @@ def augmentation_pipeline(
 
     Returns
     -------
-    :return: tuple of the processed image and mask
-    :rtype: tuple(tf.Tensor, tf.Tensor)
+    :return tuple(tf.Tensor, tf.Tensor): tuple of the processed image and mask
     """
 
     # reshapes masks, such that transforamtions work properly
-    if output_size[1] == 1:
+    if output_reshape is not None and output_size[1] == 1:
         mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
 
     image_queue.update_seed(seed)
@@ -171,7 +169,7 @@ def augmentation_pipeline(
     return image, mask
 
 
-def flatten(image, input_size, channels=1):
+def flatten(image, input_size, channels=1) -> tf.Tensor:
     """flatten
     Function that flattens an image preserving the number of channels
 
@@ -186,8 +184,7 @@ def flatten(image, input_size, channels=1):
 
     Returns
     -------
-    :return: flattened image
-    :rtype: tf.Tensor
+    :return tf.Tensor: flattened image
     """
     # the 1 is required to preserve the shape similar to the original
     return tf.reshape(image, (input_size[0] * input_size[1], 1, channels))
