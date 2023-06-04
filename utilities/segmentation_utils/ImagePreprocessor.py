@@ -112,8 +112,10 @@ def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
         mask = (masks == i).astype(float)
         encoded[:, :, :, i] = mask
     if output_size[1] == 1:
-        encoded = encoded.reshape((masks.shape[0],output_size[0] * output_size[1], num_classes))
-        
+        encoded = encoded.reshape(
+            (masks.shape[0], output_size[0] * output_size[1], num_classes)
+        )
+    encoded = tf.convert_to_tensor(encoded, dtype=tf.float32)
     return encoded
 
 
@@ -167,9 +169,9 @@ def augmentation_pipeline(
     # reshapes masks, such that transforamtions work properly
     if output_reshape is not None and output_size[1] == 1:
         mask = tf.reshape(mask, (output_reshape[0], output_reshape[1]))
-    
-    mask = tf.expand_dims(mask,axis=-1)
-  
+
+    mask = tf.expand_dims(mask, axis=-1)
+
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
 
@@ -185,8 +187,8 @@ def augmentation_pipeline(
     else:
         mask = tf.squeeze(mask, axis=-1)
 
+    mask = tf.convert_to_tensor(mask, dtype=tf.float32)
     # image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
-    
 
     return image, mask
 
@@ -209,7 +211,7 @@ def flatten(image, input_size, channels=1) -> tf.Tensor:
     :return tf.Tensor: flattened image
     """
     # the 1 is required to preserve the shape similar to the original
-    return tf.reshape(image, (input_size[0] * input_size[1], channels))
+    return tf.convert_to_tensor(tf.reshape(image, (input_size[0] * input_size[1], channels)))
 
 
 def random_flip_up_down(image, seed=0) -> tf.Tensor:
@@ -228,7 +230,7 @@ def random_flip_up_down(image, seed=0) -> tf.Tensor:
     state = np.random.RandomState(seed)
     flip = state.choice([True, False])
     if flip:
-        return tf.image.flip_up_down(image)
+        return tf.convert_to_tensor(tf.image.flip_up_down(image))
     else:
         return image
 
@@ -249,6 +251,6 @@ def random_flip_left_right(image, seed=0) -> tf.Tensor:
     state = np.random.RandomState(seed)
     flip = state.choice([True, False])
     if flip:
-        return tf.image.flip_left_right(image)
+        return tf.convert_to_tensor(tf.image.flip_left_right(image))
     else:
         return image

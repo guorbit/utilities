@@ -7,10 +7,9 @@ import os
 from typing import Optional
 
 import numpy as np
-import tensorflow as tf
-from PIL import Image
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
+from PIL import Image
 from tqdm import tqdm
 
 from utilities.segmentation_utils import ImagePreprocessor
@@ -228,23 +227,23 @@ class FlowGeneratorExperimental(Sequence):
     ----------
     :string image: path to the image directory
     :string mask: path to the mask directory
-    :int batch_size: batch size
-    :tuple image_size: image size
-    :tuple output_size: output size
-
-
-    :int num_classes: number of classes
+    :int batch_size: 
+    :tuple image_size: specifies the size of the input image
+    :tuple output_size: specifies the size of the output mask
+    :list[bool] channel_mask: specifies which channels of the input image to use
+    :int num_classes: number of classes in the output mask
 
     Keyword Arguments
     -----------------
-    :bool shuffle: whether to shuffle the dataset or not
-    :int batch_size: batch size
-    :bool preprocessing_enabled: whether to apply preprocessing or not
+    :bool, optional shuffle: whether to shuffle the dataset or not, defaults to True
+    :int batch_size: specifies the number of images read in one batch, defaults to 2
+    :bool preprocessing_enabled: whether to apply preprocessing or not, defaults to True
     :int seed: seed for flow from directory
     :int preprocessing_seed: seed for preprocessing, defaults to None
 
     Raises
     ------
+    :ValueError: if the names of the images and masks do not match
     :ValueError: if the output size is not a tuple of length 2
     :ValueError: if the output size is not a square matrix or a column vector
     """
@@ -289,17 +288,19 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_enabled = preprocessing_enabled
         self.preprocessing_seed = preprocessing_seed
 
+        (
+            self.preprocessing_queue_image,
+            self.preprocessing_queue_mask,
+        ) = ImagePreprocessor.generate_default_queue()
+
         self.image_filenames = np.array(
             sorted(os.listdir(os.path.join(self.image_path)))
         )
         self.mask_filenames = np.array(sorted(os.listdir(os.path.join(self.mask_path))))
-
-        self.shuffle_filenames()
-
+        self.__shuffle_filenames()
         self.dataset_size = self.__len__()
 
         print("Validating dataset...")
-
         for i_name, m_name in tqdm(zip(self.image_filenames, self.mask_filenames)):
             if i_name != m_name:
                 raise ValueError("The image and mask directories do not match")
@@ -336,8 +337,8 @@ class FlowGeneratorExperimental(Sequence):
 
     def set_mini_batch_size(self, batch_size: int) -> None:
         """
-        Function to set the appropriate minibatch size. Required to allign batch size in the reader with the model.\
-        Does not change the batch size of the reader.
+        Function to set the appropriate minibatch size. Required to allign batch size in the \
+        reader with the model. Does not change the batch size of the reader.
 
         Parameters
         ----------
@@ -354,12 +355,12 @@ class FlowGeneratorExperimental(Sequence):
             raise ValueError("The batch size must be divisible by the mini batch size")
         self.mini_batch = batch_size
 
-    def read_batch(self, start: int, end: int) -> None:
+    def __read_batch(self, start: int, end: int) -> None:
         # read image batch
         batch_image_filenames = self.image_filenames[start:end]
         batch_mask_filenames = self.mask_filenames[start:end]
-        for i in range(len(batch_image_filenames)):
-            if batch_image_filenames[i] != batch_mask_filenames[i]:
+        for image, mask in zip(batch_image_filenames, batch_mask_filenames):
+            if image != mask:
                 raise ValueError("The image and mask directories do not match")
 
         # calculate number of mini batches in a batch
@@ -443,9 +444,9 @@ class FlowGeneratorExperimental(Sequence):
                     mask = np.reshape(mask, self.output_size)
 
                 batch_images[i, j, :, :, :] = image
-                raw_masks[
-                    j, ...
-                ] = mask  # NOTE: this provides the flexibility required to process both column and matrix vectors
+                # NOTE: this provides the flexibility required to process both
+                # column and matrix vectors
+                raw_masks[j, ...] = mask
 
             batch_masks[i, ...] = ImagePreprocessor.onehot_encode(
                 raw_masks, self.output_size, self.num_classes
@@ -457,7 +458,7 @@ class FlowGeneratorExperimental(Sequence):
 
         # required to check when to read the next batch
 
-    def __len__(self):
+    def __len__(self) -> int:
         return int(np.floor(len(self.image_filenames) / float(self.batch_size)))
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
@@ -468,7 +469,7 @@ class FlowGeneratorExperimental(Sequence):
             self.validity_index = 0
 
         if index == self.validity_index:
-            self.read_batch(index * self.batch_size, (index + 1) * self.batch_size)
+            self.__read_batch(index * self.batch_size, (index + 1) * self.batch_size)
             self.validity_index = (self.batch_size // self.mini_batch) + index
 
         # slices new batch
@@ -476,16 +477,16 @@ class FlowGeneratorExperimental(Sequence):
             self.validity_index - index
         )
 
-        batch_images = self.image_batch_store[store_index, ...]
-        batch_masks = self.mask_batch_store[store_index, ...]
+        batch_images = self.image_batch_store[store_index, ...]  # type: ignore
+        batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
 
         return batch_images, batch_masks
 
-    def on_epoch_end(self):
+    def on_epoch_end(self) -> None:
         # Shuffle image and mask filenames
-        self.shuffle_filenames()
+        self.__shuffle_filenames()
 
-    def shuffle_filenames(self):
+    def __shuffle_filenames(self) -> None:
         if self.shuffle:
             state = np.random.RandomState(self.seed + self.shuffle_counter)
             self.shuffle_counter += 1
