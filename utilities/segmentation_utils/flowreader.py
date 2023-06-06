@@ -302,22 +302,28 @@ class FlowGeneratorExperimental(Sequence):
         ) = ImagePreprocessor.generate_default_queue()
 
         self.image_filenames = np.array(
-            sorted(os.listdir(os.path.join(self.image_path)))
+            sorted(os.listdir(self.image_path))
         )
-        self.mask_filenames = np.array(sorted(os.listdir(os.path.join(self.mask_path))))
+        self.mask_filenames = np.array(sorted(os.listdir(self.mask_path)))
         if self.read_weights:
             weights_df = pd.read_csv(
-                os.path.join(self.weights_path, "distribution.csv"), header=None
+                self.weights_path, header=None
             )
             weights_np = weights_df.to_numpy()
-            weights_np = sorted(weights_np, key=lambda x: x[0])
-
-            self.weights = weights_np[:, 1:]
+            print(weights_np.shape)
+            #sort the numpy array by the first column
+            weights_np = weights_np[weights_np[:,0].argsort()]
+        
+            print(weights_np)
+            self.weights = weights_np[:,1:].astype(np.float64)
             weight_names = weights_np[:, 0]
             for mask, weight_name in zip(self.mask_filenames, weight_names):
                 if mask != weight_name:
                     raise ValueError("The mask and weight directories do not match")
-        self.linked_data = [self.image_filenames, self.mask_filenames, self.weights]
+        
+        self.linked_data = [self.image_filenames, self.mask_filenames]
+        if self.read_weights:
+            self.linked_data.append(self.weights)
         self.__shuffle_filenames()
         self.dataset_size = self.__len__()
 
@@ -500,8 +506,12 @@ class FlowGeneratorExperimental(Sequence):
 
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
+        if self.read_weights:
+            batch_weights = self.weights[index * self.batch_size : (index + 1) * self.batch_size, ...]
 
-        return batch_images, batch_masks
+            return batch_images, batch_masks, batch_weights
+        else:
+            return batch_images, batch_masks
 
     def on_epoch_end(self) -> None:
         # Shuffle image and mask filenames

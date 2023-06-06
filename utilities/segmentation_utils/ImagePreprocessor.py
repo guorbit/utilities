@@ -115,7 +115,7 @@ def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
         encoded = encoded.reshape(
             (masks.shape[0], output_size[0] * output_size[1], num_classes)
         )
-    encoded = tf.convert_to_tensor(encoded, dtype=tf.float32)
+    encoded = tf.convert_to_tensor(encoded)
     return encoded
 
 
@@ -187,7 +187,7 @@ def augmentation_pipeline(
     else:
         mask = tf.squeeze(mask, axis=-1)
 
-    mask = tf.convert_to_tensor(mask, dtype=tf.float32)
+    mask = tf.convert_to_tensor(mask)
     # image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
 
     return image, mask
