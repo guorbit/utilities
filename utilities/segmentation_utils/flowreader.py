@@ -309,8 +309,11 @@ class FlowGeneratorExperimental(Sequence):
             weights_df = pd.read_csv(
                 os.path.join(self.weights_path, "distribution.csv"), header=None
             )
-            self.weights = weights_df.to_numpy()[:, 1:]
-            weight_names = weights_df.to_numpy()[:, 0]
+            weights_np = weights_df.to_numpy()
+            weights_np = sorted(weights_np, key=lambda x: x[0])
+
+            self.weights = weights_np[:, 1:]
+            weight_names = weights_np[:, 0]
             for mask, weight_name in zip(self.mask_filenames, weight_names):
                 if mask != weight_name:
                     raise ValueError("The mask and weight directories do not match")
