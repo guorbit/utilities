@@ -11,7 +11,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
 from PIL import Image
 from tqdm import tqdm
-
+import pandas as pd
 from utilities.segmentation_utils import ImagePreprocessor
 
 
@@ -222,7 +222,10 @@ class FlowGeneratorExperimental(Sequence):
     Note: in case the output is a column vector it has to be in the shape (x, 1)
     Note: this is an experimental version of the flow generator, which uses a \
     custom implemented dataloader instead of the keras ImageDataGenerator
-    
+    #TODO: Instead of using direct paths, and arguments, reading heads should be used
+    #TODO: as it reduces the number of arguments, and makes the code more readable and reduces
+    #TODO: cupling
+
     Parameters
     ----------
     :string image: path to the image directory
@@ -240,6 +243,7 @@ class FlowGeneratorExperimental(Sequence):
     :bool preprocessing_enabled: whether to apply preprocessing or not, defaults to True
     :int seed: seed for flow from directory
     :int preprocessing_seed: seed for preprocessing, defaults to None
+    :bool read_weights: whether to read the weights from the mask directory, defaults to False
 
     Raises
     ------
@@ -266,6 +270,8 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_enabled: bool = True,
         seed: int = 909,
         preprocessing_seed: Optional[int] = None,
+        read_weights: bool = False,
+        weights_path: Optional[str] = None,
     ):
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
@@ -287,6 +293,8 @@ class FlowGeneratorExperimental(Sequence):
         self.seed = seed
         self.preprocessing_enabled = preprocessing_enabled
         self.preprocessing_seed = preprocessing_seed
+        self.read_weights = read_weights
+        self.weights_path = weights_path
 
         (
             self.preprocessing_queue_image,
@@ -297,6 +305,16 @@ class FlowGeneratorExperimental(Sequence):
             sorted(os.listdir(os.path.join(self.image_path)))
         )
         self.mask_filenames = np.array(sorted(os.listdir(os.path.join(self.mask_path))))
+        if self.read_weights:
+            weights_df = pd.read_csv(
+                os.path.join(self.weights_path, "distribution.csv"), header=None
+            )
+            self.weights = weights_df.to_numpy()[:, 1:]
+            weight_names = weights_df.to_numpy()[:, 0]
+            for mask, weight_name in zip(self.mask_filenames, weight_names):
+                if mask != weight_name:
+                    raise ValueError("The mask and weight directories do not match")
+        self.linked_data = [self.image_filenames, self.mask_filenames, self.weights]
         self.__shuffle_filenames()
         self.dataset_size = self.__len__()
 
@@ -492,5 +510,5 @@ class FlowGeneratorExperimental(Sequence):
             self.shuffle_counter += 1
             shuffled_indices = state.permutation(len(self.image_filenames))
             shuffled_indices = shuffled_indices.astype(int)
-            self.image_filenames = self.image_filenames[shuffled_indices]
-            self.mask_filenames = self.mask_filenames[shuffled_indices]
+            for array in self.linked_data:
+                array = array[shuffled_indices]
