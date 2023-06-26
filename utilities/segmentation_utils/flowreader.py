@@ -7,11 +7,12 @@ import os
 from typing import Optional
 
 import numpy as np
+import pandas as pd
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
 from PIL import Image
 from tqdm import tqdm
-import pandas as pd
+
 from utilities.segmentation_utils import ImagePreprocessor
 
 
@@ -252,6 +253,7 @@ class FlowGeneratorExperimental(Sequence):
     :ValueError: if the output size is not a square matrix or a column vector
     """
 
+    #! these are class variables, and should be moved to the constructor to make them instance variables
     preprocessing_seed = None
     preprocessing_queue_image = None
     preprocessing_queue_mask = None
