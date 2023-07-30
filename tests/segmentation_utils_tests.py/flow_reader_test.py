@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import pytest
 import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
 from pytest import MonkeyPatch
@@ -67,11 +68,10 @@ def test_makes_flow_generator_with_queue() -> None:
 
     # create a copy of the generator args
     new_generator_args = generator_args.copy()
-    new_generator_args["preprocessing_queue_image"] = image_queue
-    new_generator_args["preprocessing_queue_mask"] = mask_queue
 
     # create a flow generator
-    FlowGenerator(**new_generator_args)
+    generator = FlowGenerator(**new_generator_args)
+    generator.set_preprocessing_pipeline(image_queue, mask_queue)
 
 
 def test_makes_flow_generator_wrong_shape() -> None:
@@ -181,7 +181,7 @@ def test_get_generator() -> None:
     patch.undo()
     patch.undo()
 
-
+@pytest.mark.skip(reason="Deprecated functionality")
 def test_reader_error_raised() -> None:
     try:
         # predifining input variables

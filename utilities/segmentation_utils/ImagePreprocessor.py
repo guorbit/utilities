@@ -1,8 +1,19 @@
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Protocol
 
 import numpy as np
 import tensorflow as tf
+
+
+class PreprocessorInterface(Protocol):
+    queue: list[Callable]
+    arguments: list[Dict]
+
+    def update_seed(self, seed: int) -> None:
+        ...
+
+    def get_queue_length(self) -> int:
+        ...
 
 
 @dataclass
@@ -96,9 +107,15 @@ def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     -------
     :return tf.Tensor: Batch of one-hot encoded masks
     """
-    encoded = np.zeros((masks.shape[0], output_size[0] * output_size[1], num_classes))
+    #!TODO: add support for 1D masks
+    encoded = np.zeros((masks.shape[0], output_size[0], output_size[1], num_classes))
     for i in range(num_classes):
-        encoded[:, :, i] = tf.squeeze((masks == i).astype(int))
+        mask = (masks == i).astype(float)
+        encoded[:, :, :, i] = mask
+    if output_size[1] == 1:
+        encoded = encoded.reshape(
+            (masks.shape[0], output_size[0] * output_size[1], num_classes)
+        )
     encoded = tf.convert_to_tensor(encoded)
     return encoded
 
@@ -152,7 +169,9 @@ def augmentation_pipeline(
 
     # reshapes masks, such that transforamtions work properly
     if output_reshape is not None and output_size[1] == 1:
-        mask = tf.reshape(mask, (output_reshape[0], output_reshape[1], 1))
+        mask = tf.reshape(mask, (output_reshape[0], output_reshape[1]))
+
+    mask = tf.expand_dims(mask, axis=-1)
 
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
@@ -166,6 +185,12 @@ def augmentation_pipeline(
     # flattens masks out to the correct output shape
     if output_size[1] == 1:
         mask = flatten(mask, output_size, channels=1)
+    else:
+        mask = tf.squeeze(mask, axis=-1)
+
+    mask = tf.convert_to_tensor(mask)
+    # image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
+
     return image, mask
 
 
@@ -187,4 +212,46 @@ def flatten(image, input_size, channels=1) -> tf.Tensor:
     :return tf.Tensor: flattened image
     """
     # the 1 is required to preserve the shape similar to the original
-    return tf.reshape(image, (input_size[0] * input_size[1], 1, channels))
+    return tf.convert_to_tensor(tf.reshape(image, (input_size[0] * input_size[1], channels)))
+
+
+def random_flip_up_down(image, seed=0) -> tf.Tensor:
+    """
+    Function that randomly flips an image up or down
+
+    Parameters
+    ----------
+    :tf.Tensor image: image to be flipped
+
+    Returns
+    -------
+    :return tf.Tensor: flipped image
+    """
+
+    state = np.random.RandomState(seed)
+    flip = state.choice([True, False])
+    if flip:
+        return tf.convert_to_tensor(tf.image.flip_up_down(image))
+    else:
+        return image
+
+
+def random_flip_left_right(image, seed=0) -> tf.Tensor:
+    """
+    Function that randomly flips an image left or right
+
+    Parameters
+    ----------
+    :tf.Tensor image: image to be flipped
+
+    Returns
+    -------
+    :return tf.Tensor: flipped image
+    """
+
+    state = np.random.RandomState(seed)
+    flip = state.choice([True, False])
+    if flip:
+        return tf.convert_to_tensor(tf.image.flip_left_right(image))
+    else:
+        return image

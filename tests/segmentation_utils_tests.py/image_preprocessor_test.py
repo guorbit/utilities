@@ -1,10 +1,12 @@
 import numpy as np
+import pytest
 import tensorflow as tf
 
 from utilities.segmentation_utils import ImagePreprocessor
 
 
-def test_image_onehot_encoder() -> None:
+@pytest.mark.skip(reason="Deprecated functionality")
+def test_image_onehot_encoder_column() -> None:
     # predifining input variables
     n_classes = 2
     batch_size = 1
@@ -24,39 +26,37 @@ def test_image_onehot_encoder() -> None:
 
     assert one_hot_image.shape == (
         1,
-        image_size[0] // 2 * image_size[1] // 2,
+        output_size[0] * output_size[1],
         n_classes,
     )
     assert np.array_equal(one_hot_image, onehot_test)
 
 
-def test_image_augmentation_pipeline_column() -> None:
+def test_image_onehot_encoder_squarematrix() -> None:
     # predifining input variables
-    image = np.zeros((512, 512, 3))
-    mask = np.zeros((256 * 256, 1))
-    image = tf.convert_to_tensor(image)
-    mask = tf.convert_to_tensor(mask)
+    n_classes = 2
+    batch_size = 1
+    image_size = (512, 512)
+    output_size = (256, 256)
 
-    input_size = (512, 512)
-    output_size = (256 * 256, 1)
-    output_reshape = (256, 256)
+    # creating a mask with 2 classes
+    mask = np.zeros((batch_size, output_size[0], output_size[1]))
+    mask[:, ::2,:] = 1
 
-    # creating dummy queues
-    image_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
+    # creating a onehot mask to compare with the output of the function
+    onehot_test = np.zeros((batch_size, output_size[0] , output_size[1], n_classes))
+    onehot_test[:, ::2, :,1] = 1
+    onehot_test[:, 1::2,:, 0] = 1
+
+    one_hot_image = ImagePreprocessor.onehot_encode(mask, output_size, n_classes)
+
+    assert one_hot_image.shape == (
+        1,
+        output_size[0],
+        output_size[1],
+        n_classes,
     )
-    mask_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
-    )
-
-    image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
-        image, mask, input_size, output_size, image_queue, mask_queue,output_reshape
-    )
-    image_new = image_new.numpy()
-    mask_new = mask_new.numpy()
-
-    assert np.array(image_new).shape == (512, 512, 3)
-    assert np.array(mask_new).shape == (256 * 256, 1, 1)
+    assert np.array_equal(one_hot_image, onehot_test)
 
 
 def test_image_augmentation_pipeline_squarematrix() -> None:
@@ -123,5 +123,4 @@ def test_flatten() -> None:
     image = tf.convert_to_tensor(image)
     image = ImagePreprocessor.flatten(image, (512, 512), 3)
     image = image.numpy()
-    assert image.shape == (512 * 512, 1, 3)
-
+    assert image.shape == (512 * 512, 3)

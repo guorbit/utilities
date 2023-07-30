@@ -320,6 +320,9 @@ def cut_ims_in_directory(
     target_dims: tuple[int, int] = (512, 512),
     mask=False,
     preprocess: bool = False,
+    batch_size: int = 100,
+    format: str = "tiff",
+    preprocess_function=__preprocess_mask_image,
 ) -> None:
     """Finds images at "Path_ims" cuts them into dimension "target_dims",
     and then saves them as png files to "path_target_dir".
@@ -333,7 +336,7 @@ def cut_ims_in_directory(
     :bool, optional mask: If true assumes images are masks. Defaults to False.
     :bool, optional preprocess: If true preprocesses images. Defaults to False.
     """
-    print("the following files are located at input Path :")
+    
     dir_contents = os.listdir(path_ims)
     dir_contents = sorted(dir_contents)
     batch_size = 100
@@ -383,7 +386,7 @@ def cut_ims_in_directory(
         # fill batch array
         for i, n in enumerate(cut_im):
             if preprocess:
-                n = __preprocess_mask_image(n)
+                n = preprocess_function(n)
             if mask:
                 batch[counter, i, :, :, 0] = n[:, :]
             else:
@@ -416,7 +419,8 @@ def cut_ims_in_directory(
                                 str(target_dims[0]),
                                 "x",
                                 str(target_dims[1]),
-                                ".tiff",
+                                ".",
+                                format,
                             ]
                         ),
                     )
