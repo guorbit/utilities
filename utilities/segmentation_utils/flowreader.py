@@ -488,7 +488,7 @@ class FlowGeneratorExperimental(Sequence):
         # required to check when to read the next batch
 
     def __len__(self) -> int:
-        return int(np.floor(len(self.image_filenames) / float(self.batch_size)))
+        return int(np.floor(len(self.image_filenames) / float(self.mini_batch)))
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
