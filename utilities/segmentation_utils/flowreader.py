@@ -253,11 +253,7 @@ class FlowGeneratorExperimental(Sequence):
     :ValueError: if the output size is not a square matrix or a column vector
     """
 
-    #! these are class variables, and should be moved to the constructor to make them instance variables
-    preprocessing_seed = None
-    preprocessing_queue_image = None
-    preprocessing_queue_mask = None
-    shuffle_counter = 0
+
 
     def __init__(
         self,
@@ -274,6 +270,9 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_seed: Optional[int] = None,
         read_weights: bool = False,
         weights_path: Optional[str] = None,
+        preprocessing_queue_image = None,
+        preprocessing_queue_mask = None,
+        shuffle_counter = 0,
     ):
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
@@ -297,6 +296,9 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_seed = preprocessing_seed
         self.read_weights = read_weights
         self.weights_path = weights_path
+        self.preprocessing_queue_image = preprocessing_queue_image
+        self.preprocessing_queue_mask = preprocessing_queue_mask
+        self.shuffle_counter = shuffle_counter
 
         (
             self.preprocessing_queue_image,
