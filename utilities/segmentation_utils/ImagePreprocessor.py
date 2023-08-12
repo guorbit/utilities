@@ -106,6 +106,21 @@ def generate_mask_queue(seed=0) -> PreprocessingQueue:
     )
     return mask_queue
 
+def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQueue]:
+    """
+    Generates the default image and mask processing queues
+
+    Keyword Arguments
+    -----------------
+    :seed int: seed to be used for the random functions
+
+    Returns
+    -------
+    :return tuple(PreprocessingQueue, PreprocessingQueue): default queues
+    """
+    image_queue = generate_image_queue(seed)
+    mask_queue = generate_mask_queue(seed)
+    return image_queue, mask_queue
 
 def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     """
