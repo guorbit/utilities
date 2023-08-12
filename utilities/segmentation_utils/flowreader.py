@@ -511,6 +511,7 @@ class FlowGeneratorExperimental(Sequence):
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
         if self.image_ordering == ImageOrdering.CHANNEL_FIRST:
             batch_images = np.moveaxis(batch_images, -1, 1)
+            batch_masks = np.moveaxis(batch_masks, -1, 1)
 
         if self.read_weights:
             batch_weights = self.weights[
