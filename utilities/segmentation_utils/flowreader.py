@@ -14,6 +14,7 @@ from PIL import Image
 from tqdm import tqdm
 
 from utilities.segmentation_utils import ImagePreprocessor
+from utilities.segmentation_utils.constants import ImageOrdering
 
 
 class FlowGenerator:
@@ -237,6 +238,7 @@ class FlowGeneratorExperimental(Sequence):
     :list[bool] channel_mask: specifies which channels of the input image to use
     :int num_classes: number of classes in the output mask
 
+
     Keyword Arguments
     -----------------
     :bool, optional shuffle: whether to shuffle the dataset or not, defaults to True
@@ -244,16 +246,19 @@ class FlowGeneratorExperimental(Sequence):
     :bool preprocessing_enabled: whether to apply preprocessing or not, defaults to True
     :int seed: seed for flow from directory
     :int preprocessing_seed: seed for preprocessing, defaults to None
+    :preprocessing_queue_image: preprocessing queue for images
+    :preprocessing_queue_mask: preprocessing queue for masks
     :bool read_weights: whether to read the weights from the mask directory, defaults to False
-
+    :string weights_path: path to the weights directory, defaults to None
+    :int shuffle_counter: the seed offset used for shuffling, defaults to 0
+    :ImageOrdering image_ordering: the ordering of the image channels, defaults to channels_last
+    
     Raises
     ------
     :ValueError: if the names of the images and masks do not match
     :ValueError: if the output size is not a tuple of length 2
     :ValueError: if the output size is not a square matrix or a column vector
     """
-
-
 
     def __init__(
         self,
@@ -268,11 +273,12 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_enabled: bool = True,
         seed: int = 909,
         preprocessing_seed: Optional[int] = None,
+        preprocessing_queue_image: ImagePreprocessor.PreprocessorInterface = ImagePreprocessor.generate_image_queue(),
+        preprocessing_queue_mask: ImagePreprocessor.PreprocessorInterface = ImagePreprocessor.generate_mask_queue(),
         read_weights: bool = False,
         weights_path: Optional[str] = None,
-        preprocessing_queue_image = None,
-        preprocessing_queue_mask = None,
-        shuffle_counter = 0,
+        shuffle_counter: int = 0,
+        image_ordering: ImageOrdering = ImageOrdering.CHANNEL_LAST,
     ):
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
@@ -299,32 +305,25 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_queue_image = preprocessing_queue_image
         self.preprocessing_queue_mask = preprocessing_queue_mask
         self.shuffle_counter = shuffle_counter
+        self.image_ordering = image_ordering
 
-        (
-            self.preprocessing_queue_image,
-            self.preprocessing_queue_mask,
-        ) = ImagePreprocessor.generate_default_queue()
 
-        self.image_filenames = np.array(
-            sorted(os.listdir(self.image_path))
-        )
+        self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.mask_filenames = np.array(sorted(os.listdir(self.mask_path)))
         if self.read_weights:
-            weights_df = pd.read_csv(
-                self.weights_path, header=None
-            )
+            weights_df = pd.read_csv(self.weights_path, header=None)
             weights_np = weights_df.to_numpy()
             print(weights_np.shape)
-            #sort the numpy array by the first column
-            weights_np = weights_np[weights_np[:,0].argsort()]
-        
+            # sort the numpy array by the first column
+            weights_np = weights_np[weights_np[:, 0].argsort()]
+
             print(weights_np)
-            self.weights = weights_np[:,1:].astype(np.float64)
+            self.weights = weights_np[:, 1:].astype(np.float64)
             weight_names = weights_np[:, 0]
             for mask, weight_name in zip(self.mask_filenames, weight_names):
                 if mask != weight_name:
                     raise ValueError("The mask and weight directories do not match")
-        
+
         self.linked_data = [self.image_filenames, self.mask_filenames]
         if self.read_weights:
             self.linked_data.append(self.weights)
@@ -510,8 +509,13 @@ class FlowGeneratorExperimental(Sequence):
 
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
+        if self.image_ordering == ImageOrdering.CHANNEL_FIRST:
+            batch_images = np.moveaxis(batch_images, -1, 1)
+
         if self.read_weights:
-            batch_weights = self.weights[index * self.batch_size : (index + 1) * self.batch_size, ...]
+            batch_weights = self.weights[
+                index * self.batch_size : (index + 1) * self.batch_size, ...
+            ]
 
             return batch_images, batch_masks, batch_weights
         else:

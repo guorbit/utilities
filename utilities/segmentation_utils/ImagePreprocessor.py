@@ -52,9 +52,9 @@ class PreprocessingQueue:
         return len(self.queue)
 
 
-def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQueue]:
+def generate_image_queue(seed=0) -> PreprocessingQueue:
     """
-    Generates the default processing queue
+    Generates the default image processing queue
 
     Keyword Arguments
     -----------------
@@ -66,8 +66,8 @@ def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQue
     """
     image_queue = PreprocessingQueue(
         queue=[
-            tf.image.random_flip_left_right,
-            tf.image.random_flip_up_down,
+            random_flip_left_right,
+            random_flip_up_down,
             tf.image.random_brightness,
             tf.image.random_contrast,
             tf.image.random_saturation,
@@ -82,17 +82,29 @@ def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQue
             {"max_delta": 0.2, "seed": seed},
         ],
     )
+    return image_queue
+
+
+def generate_mask_queue(seed=0) -> PreprocessingQueue:
+    """
+    Generates the default mask processing queue
+
+    Keyword Arguments
+    -----------------
+    :seed int: seed to be used for the random functions
+
+    Returns
+    -------
+    :return PreprocessingQueue: default queue
+    """
     mask_queue = PreprocessingQueue(
-        queue=[
-            tf.image.random_flip_left_right,
-            tf.image.random_flip_up_down,
-        ],
+        queue=[random_flip_left_right, random_flip_up_down],
         arguments=[
             {"seed": seed},
             {"seed": seed},
         ],
     )
-    return image_queue, mask_queue
+    return mask_queue
 
 
 def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
@@ -212,7 +224,9 @@ def flatten(image, input_size, channels=1) -> tf.Tensor:
     :return tf.Tensor: flattened image
     """
     # the 1 is required to preserve the shape similar to the original
-    return tf.convert_to_tensor(tf.reshape(image, (input_size[0] * input_size[1], channels)))
+    return tf.convert_to_tensor(
+        tf.reshape(image, (input_size[0] * input_size[1], channels))
+    )
 
 
 def random_flip_up_down(image, seed=0) -> tf.Tensor:
