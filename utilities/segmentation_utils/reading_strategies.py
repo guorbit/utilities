@@ -18,11 +18,11 @@ class RGBImageStrategy:
         self,
         image_path: str,
         image_size: tuple [int, int],
-        antialias: int = 1,
+        image_resample: Image.Resampling.NEAREST,
     ):
         self.image_path = image_path
         self.image_size = image_size
-        self.antialias = antialias
+        self.image_resample = image_resample
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         #read images with PIL
@@ -31,7 +31,7 @@ class RGBImageStrategy:
             image_index = i + dataset_index
             image = Image.open(
                 os.path.join(self.image_path, image_filenames[image_index])
-            ).resize(self.image_size, self.antialias)
+            ).resize(self.image_size, self.image_resample)
             image = np.array(image)
             image = image / 255
         return image
