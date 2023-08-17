@@ -1,8 +1,10 @@
-from typing import Protocol
 import os
+from typing import Protocol
+
 import numpy as np
-from PIL import Image
 import rasterio
+from PIL import Image
+
 
 class IReader(Protocol):
 
@@ -18,7 +20,7 @@ class RGBImageStrategy:
         self,
         image_path: str,
         image_size: tuple[int, int],
-        image_resample: Image.Resampling.NEAREST,
+        image_resample = Image.Resampling.NEAREST,
     ):
         self.image_path = image_path
         self.image_size = image_size
@@ -26,6 +28,8 @@ class RGBImageStrategy:
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         #read images with PIL
+
+        #! add this to the intializer
         image_filenames = np.array(sorted(os.listdir(self.image_path)))
         for i in range(batch_size):
             image_index = i + dataset_index
@@ -47,7 +51,7 @@ class HyperspectralImageStrategy:
         self,
         image_path:str,
         image_resize:tuple[int,int],
-        image_resample: Image.Resampling.NEAREST,
+        image_resample = Image.Resampling.NEAREST,
         
     ):
         self.image_path = image_path
