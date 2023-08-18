@@ -5,7 +5,7 @@ import numpy as np
 import tensorflow as tf
 
 
-class PreprocessorInterface(Protocol):
+class IPreprocessor(Protocol):
     queue: list[Callable]
 
     def update_seed(self, seed: int) -> None:
