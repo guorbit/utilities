@@ -41,8 +41,8 @@ def test_set_preprocessing_pipeline() -> None:
         channel_mask= [True,True,True]
     )
 
-    image_queue = ImagePreprocessor.PreprocessingQueue(queue=[],arguments=[])
-    mask_queue = ImagePreprocessor.PreprocessingQueue(queue=[],arguments=[])
+    image_queue = ImagePreprocessor.PreprocessingQueue(queue=[])
+    mask_queue = ImagePreprocessor.PreprocessingQueue(queue=[])
 
     generator.set_preprocessing_pipeline(
         image_queue,mask_queue

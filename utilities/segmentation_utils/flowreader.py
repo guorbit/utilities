@@ -101,8 +101,8 @@ class FlowGenerator:
 
     def set_preprocessing_pipeline(
         self,
-        preprocessing_queue_image: ImagePreprocessor.PreprocessorInterface,
-        preprocessing_queue_mask: ImagePreprocessor.PreprocessorInterface,
+        preprocessing_queue_image: ImagePreprocessor.IPreprocessor,
+        preprocessing_queue_mask: ImagePreprocessor.IPreprocessor,
     ) -> None:
         """
         Sets the preprocessing pipeline
@@ -273,8 +273,8 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_enabled: bool = True,
         seed: int = 909,
         preprocessing_seed: Optional[int] = None,
-        preprocessing_queue_image: ImagePreprocessor.PreprocessorInterface = ImagePreprocessor.generate_image_queue(),
-        preprocessing_queue_mask: ImagePreprocessor.PreprocessorInterface = ImagePreprocessor.generate_mask_queue(),
+        preprocessing_queue_image: ImagePreprocessor.IPreprocessor = ImagePreprocessor.generate_image_queue(),
+        preprocessing_queue_mask: ImagePreprocessor.IPreprocessor = ImagePreprocessor.generate_mask_queue(),
         read_weights: bool = False,
         weights_path: Optional[str] = None,
         shuffle_counter: int = 0,
@@ -351,8 +351,8 @@ class FlowGeneratorExperimental(Sequence):
 
     def set_preprocessing_pipeline(
         self,
-        preprocessing_queue_image: ImagePreprocessor.PreprocessorInterface,
-        preprocessing_queue_mask: ImagePreprocessor.PreprocessorInterface,
+        preprocessing_queue_image: ImagePreprocessor.IPreprocessor,
+        preprocessing_queue_mask: ImagePreprocessor.IPreprocessor,
     ) -> None:
         """
         Sets the preprocessing pipeline

@@ -71,10 +71,10 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
 
     # creating dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
+        queue=[ImagePreprocessor.PreFunction(lambda x, y, seed: x,y=1)]
     )
     mask_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda x, y, seed: x], arguments=[{"y": 1}]
+        queue=[ImagePreprocessor.PreFunction(lambda x, y, seed: x,y=1)]
     )
 
     image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
@@ -94,27 +94,23 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
 
 def test_processing_queue() -> None:
     # creating dummy queues
+    
     image_queue = ImagePreprocessor.PreprocessingQueue(
-        queue=[lambda seed: seed], arguments=[dict(seed=1)]
+        queue=[ImagePreprocessor.PreFunction(lambda seed:seed, seed=1)]
     )
-
     # changing the seed
     new_seed = 5
     image_queue.update_seed(new_seed)
 
-    assert image_queue.arguments[0]["seed"] == new_seed
+    assert image_queue.queue[0].kwargs["seed"] == new_seed
 
 
 def test_generate_default_queue() -> None:
     # creating default queues
     image_queue, mask_queue = ImagePreprocessor.generate_default_queue()
 
-    # changing the seed
-    new_seed = 5
-    image_queue.update_seed(new_seed)
-
-    assert image_queue.arguments[0]["seed"] == new_seed
-    assert image_queue.get_queue_length() == 6
+    
+    assert image_queue.get_queue_length() == 5
     assert mask_queue.get_queue_length() == 2
 
 

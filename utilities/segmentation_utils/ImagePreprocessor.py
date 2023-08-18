@@ -1,19 +1,31 @@
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional, Protocol
+from typing import Callable, Optional, Protocol
 
 import numpy as np
 import tensorflow as tf
 
 
-class PreprocessorInterface(Protocol):
+class IPreprocessor(Protocol):
     queue: list[Callable]
-    arguments: list[Dict]
 
     def update_seed(self, seed: int) -> None:
         ...
 
     def get_queue_length(self) -> int:
         ...
+
+
+class PreFunction:
+    def __init__(self, function: Callable, *args, **kwargs) -> None:
+        self.function = function
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, image: tf.Tensor) -> tf.Tensor:
+        return self.function(image, *self.args, **self.kwargs)
+
+    def set_seed(self, seed: int) -> None:
+        self.kwargs["seed"] = seed
 
 
 @dataclass
@@ -24,11 +36,10 @@ class PreprocessingQueue:
     Parameters
     ----------
     :queue list: list of functions to be applied
-    :arguments list[dict]: list of arguments to be passed to the functions
+
     """
 
-    queue: list[Callable]
-    arguments: list[Dict]
+    queue: list[PreFunction]
 
     def update_seed(self, seed):
         """
@@ -38,8 +49,8 @@ class PreprocessingQueue:
         ----------
         :seed int: seed to be changed to
         """
-        for i in self.arguments:
-            i["seed"] = seed
+        for i in self.queue:
+            i.set_seed(seed)
 
     def get_queue_length(self) -> int:
         """
@@ -64,22 +75,14 @@ def generate_image_queue(seed=0) -> PreprocessingQueue:
     -------
     :return PreprocessingQueue: default queue
     """
+
     image_queue = PreprocessingQueue(
-        queue=[
-            random_flip_left_right,
-            random_flip_up_down,
-            tf.image.random_brightness,
-            tf.image.random_contrast,
-            tf.image.random_saturation,
-            tf.image.random_hue,
-        ],
-        arguments=[
-            {"seed": seed},
-            {"seed": seed},
-            {"max_delta": 0.2, "seed": seed},
-            {"lower": 0.8, "upper": 1.2, "seed": seed},
-            {"lower": 0.8, "upper": 1.2, "seed": seed},
-            {"max_delta": 0.2, "seed": seed},
+        [
+            PreFunction(random_flip_left_right, seed=seed),
+            PreFunction(random_flip_up_down, seed=seed),
+            PreFunction(tf.image.random_brightness, max_delta=0.2, seed=seed),
+            PreFunction(tf.image.random_contrast, lower=0.8, upper=1.2, seed=seed),
+            PreFunction(tf.image.random_saturation, lower=0.8, upper=1.2, seed=seed),
         ],
     )
     return image_queue
@@ -97,14 +100,15 @@ def generate_mask_queue(seed=0) -> PreprocessingQueue:
     -------
     :return PreprocessingQueue: default queue
     """
+
     mask_queue = PreprocessingQueue(
-        queue=[random_flip_left_right, random_flip_up_down],
-        arguments=[
-            {"seed": seed},
-            {"seed": seed},
+        [
+            PreFunction(random_flip_left_right, seed=seed),
+            PreFunction(random_flip_up_down, seed=seed),
         ],
     )
     return mask_queue
+
 
 def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQueue]:
     """
@@ -121,6 +125,7 @@ def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQue
     image_queue = generate_image_queue(seed)
     mask_queue = generate_mask_queue(seed)
     return image_queue, mask_queue
+
 
 def onehot_encode(masks, output_size, num_classes) -> tf.Tensor:
     """
@@ -203,11 +208,9 @@ def augmentation_pipeline(
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
 
-    for i, fun in enumerate(image_queue.queue):
-        image = fun(image, **image_queue.arguments[i])
-
-    for i, fun in enumerate(mask_queue.queue):
-        mask = fun(mask, **mask_queue.arguments[i])
+    for fun_im, fun_mask in zip(image_queue.queue, mask_queue.queue):
+        image = fun_im(image)
+        mask = fun_mask(mask)
 
     # flattens masks out to the correct output shape
     if output_size[1] == 1:

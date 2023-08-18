@@ -34,6 +34,7 @@ generator_args = {
 mock_onehot_fn = lambda x, y, z: np.rollaxis(np.array([x for i in range(z)]), 0, 3)
 mock_augmentation_fn = lambda x, y, z, a, b: (x, y)
 
+
 # tests
 def test_makes_flow_generator() -> None:
     patch = MonkeyPatch()
@@ -60,10 +61,14 @@ def test_makes_flow_generator_with_queue() -> None:
 
     # create dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
-        [lambda x, y, seed: x], [{"y": 1}]
+        [
+            ImagePreprocessor.PreFunction(lambda x, y, seed: x, y=1),
+        ]
     )
     mask_queue = ImagePreprocessor.PreprocessingQueue(
-        [lambda x, y, seed: x], [{"y": 1}]
+        [
+            ImagePreprocessor.PreFunction(lambda x, y, seed: x, y=1),
+        ]
     )
 
     # create a copy of the generator args
@@ -180,6 +185,7 @@ def test_get_generator() -> None:
     assert generator != None
     patch.undo()
     patch.undo()
+
 
 @pytest.mark.skip(reason="Deprecated functionality")
 def test_reader_error_raised() -> None:
