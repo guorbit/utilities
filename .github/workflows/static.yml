@@ -43,7 +43,7 @@ jobs:
         cd docs
 
 
-        sphinx-apidoc -e -M --force -o . ..
+        sphinx-apidoc -e -M --force -o . ../utilities/
         make html
     - name: Upload build data
       uses: actions/upload-artifact@v3

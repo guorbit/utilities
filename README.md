@@ -7,7 +7,7 @@ Note: you need to have a working ssh key to access github from your current mach
 you need to have wheel installed.
 
 ```
-python setup.py bdist_wheel sdist
+pip wheel . --no-deps --wheel-dir=dist
 
 ```
 After build run the following command to install, the built package.
