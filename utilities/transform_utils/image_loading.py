@@ -4,6 +4,7 @@ This module contains functions for loading images from a directory into a numpy 
 
 
 import os
+
 import numpy as np
 from numpy.typing import NDArray
 from PIL import Image

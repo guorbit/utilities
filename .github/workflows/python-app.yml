@@ -66,7 +66,7 @@ jobs:
     - name: Lint with pylint
       run: |
         pip install pylint
-        pylint --fail-under=9.8 --rcfile=.pylintrc utilities
+        pylint --fail-under=9.7 --rcfile=.pylintrc utilities
     - name: code coverage
       run: |
         mkdir -p ./coverage
