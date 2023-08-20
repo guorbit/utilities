@@ -1,21 +1,19 @@
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "utilities"
 version = "0.1.0"
-authors = [
-    {name = "GU Orbit Software Team", email = "uog.orbit@gmail.com"}
-]
+authors = [{ name = "GU Orbit Software Team", email = "uog.orbit@gmail.com" }]
 requires-python = ">=3.10"
 description = "A package containing utilities for GU Orbit Software"
 readme = "README.md"
-license = {text = "MIT"}
+license = { text = "MIT" }
 classifiers = [
     "Programming Language :: Python :: 3.10",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent"
+    "Operating System :: OS Independent",
 ]
 dependencies = [
     "numpy >= 1.24.0",
@@ -28,13 +26,13 @@ dependencies = [
 [tool.setuptools]
 packages = ["utilities"]
 
+
 [project.optional-dependencies]
 dev = [
     "pytest >= 7.2.2",
     "pytest-cov >= 4.0.0",
     "pytest-mock >= 3.10.0",
     "twine >= 4.0.0",
-    
     "Sphinx >= 6.1.3",
     "furo >= 2022.12.7",
 ]
