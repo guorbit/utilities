@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, Optional, Protocol
+from typing import Callable, Protocol
 
 import numpy as np
 import tensorflow as tf

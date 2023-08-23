@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.constants import ImageOrdering
+from utilities.segmentation_utils.ImagePreprocessor import IPreprocessor
 
 
 class FlowGenerator:
@@ -101,8 +102,8 @@ class FlowGenerator:
 
     def set_preprocessing_pipeline(
         self,
-        preprocessing_queue_image: ImagePreprocessor.IPreprocessor,
-        preprocessing_queue_mask: ImagePreprocessor.IPreprocessor,
+        preprocessing_queue_image: IPreprocessor,
+        preprocessing_queue_mask: IPreprocessor,
     ) -> None:
         """
         Sets the preprocessing pipeline
@@ -200,9 +201,6 @@ class FlowGenerator:
                     i_image, i_mask = ImagePreprocessor.augmentation_pipeline(
                         image=i_image,
                         mask=i_mask,
-                        input_size=self.image_size,
-                        output_size=self.output_size,
-                        output_reshape=self.output_reshape,
                         seed=image_seed,
                         #!both preprocessing queues are assigned by this time
                         image_queue=self.preprocessing_queue_image,  # type: ignore
@@ -273,8 +271,8 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_enabled: bool = True,
         seed: int = 909,
         preprocessing_seed: Optional[int] = None,
-        preprocessing_queue_image: ImagePreprocessor.IPreprocessor = ImagePreprocessor.generate_image_queue(),
-        preprocessing_queue_mask: ImagePreprocessor.IPreprocessor = ImagePreprocessor.generate_mask_queue(),
+        preprocessing_queue_image: IPreprocessor = ImagePreprocessor.generate_image_queue(),
+        preprocessing_queue_mask: IPreprocessor = ImagePreprocessor.generate_mask_queue(),
         read_weights: bool = False,
         weights_path: Optional[str] = None,
         shuffle_counter: int = 0,
@@ -328,7 +326,7 @@ class FlowGeneratorExperimental(Sequence):
         self.linked_data = [self.image_filenames, self.mask_filenames]
         if self.read_weights:
             self.linked_data.append(self.weights)
-        
+
         self.__shuffle_filenames()
         self.dataset_size = self.__len__()
 
@@ -428,13 +426,12 @@ class FlowGeneratorExperimental(Sequence):
 
             for j in range(self.mini_batch):
                 image_index = i * self.mini_batch + j
-            
+
                 image = Image.open(
                     os.path.join(self.image_path, batch_image_filenames[image_index])
                 ).resize(self.image_size, Image.ANTIALIAS)
-                
-                image = np.array(image)
 
+                image = np.array(image)
 
                 mask = Image.open(
                     os.path.join(self.mask_path, batch_mask_filenames[image_index])
@@ -467,7 +464,7 @@ class FlowGeneratorExperimental(Sequence):
                 # column and matrix vectors
                 raw_masks[j, :, :] = mask
 
-            batch_masks[i, :, : , :] = ImagePreprocessor.onehot_encode(
+            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
                 raw_masks, self.num_classes
             )
 
