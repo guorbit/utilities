@@ -15,6 +15,7 @@ from tqdm import tqdm
 
 from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.constants import ImageOrdering
+from utilities.segmentation_utils.ImagePreprocessor import IPreprocessor
 
 
 class FlowGenerator:
@@ -101,8 +102,8 @@ class FlowGenerator:
 
     def set_preprocessing_pipeline(
         self,
-        preprocessing_queue_image: ImagePreprocessor.IPreprocessor,
-        preprocessing_queue_mask: ImagePreprocessor.IPreprocessor,
+        preprocessing_queue_image: IPreprocessor,
+        preprocessing_queue_mask: IPreprocessor,
     ) -> None:
         """
         Sets the preprocessing pipeline
@@ -200,9 +201,6 @@ class FlowGenerator:
                     i_image, i_mask = ImagePreprocessor.augmentation_pipeline(
                         image=i_image,
                         mask=i_mask,
-                        input_size=self.image_size,
-                        output_size=self.output_size,
-                        output_reshape=self.output_reshape,
                         seed=image_seed,
                         #!both preprocessing queues are assigned by this time
                         image_queue=self.preprocessing_queue_image,  # type: ignore
@@ -273,8 +271,8 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_enabled: bool = True,
         seed: int = 909,
         preprocessing_seed: Optional[int] = None,
-        preprocessing_queue_image: ImagePreprocessor.IPreprocessor = ImagePreprocessor.generate_image_queue(),
-        preprocessing_queue_mask: ImagePreprocessor.IPreprocessor = ImagePreprocessor.generate_mask_queue(),
+        preprocessing_queue_image: IPreprocessor = ImagePreprocessor.generate_image_queue(),
+        preprocessing_queue_mask: IPreprocessor = ImagePreprocessor.generate_mask_queue(),
         read_weights: bool = False,
         weights_path: Optional[str] = None,
         shuffle_counter: int = 0,
@@ -307,9 +305,10 @@ class FlowGeneratorExperimental(Sequence):
         self.shuffle_counter = shuffle_counter
         self.image_ordering = image_ordering
 
-
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.mask_filenames = np.array(sorted(os.listdir(self.mask_path)))
+
+        # should be moved out as a strategy
         if self.read_weights:
             weights_df = pd.read_csv(self.weights_path, header=None)
             weights_np = weights_df.to_numpy()
@@ -327,6 +326,7 @@ class FlowGeneratorExperimental(Sequence):
         self.linked_data = [self.image_filenames, self.mask_filenames]
         if self.read_weights:
             self.linked_data.append(self.weights)
+
         self.__shuffle_filenames()
         self.dataset_size = self.__len__()
 
@@ -344,8 +344,10 @@ class FlowGeneratorExperimental(Sequence):
             # such no need to define it otherwise
             dimension = math.sqrt(self.output_size[0])
             self.output_reshape = (int(dimension), int(dimension))
+            self.column_vector = True
         else:
             self.output_reshape = self.output_size
+            self.column_vector = False
 
         print("Reading images from: ", self.image_path)
 
@@ -405,42 +407,31 @@ class FlowGeneratorExperimental(Sequence):
                 self.n_channels,
             )
         )
-        if self.output_size[1] == 1:
-            column = True
-            batch_masks = np.zeros(
-                (n, self.mini_batch, self.output_size[0], self.num_classes)
+
+        batch_masks = np.zeros(
+            (
+                n,
+                self.mini_batch,
+                self.output_reshape[0],
+                self.output_reshape[1],
+                self.num_classes,
             )
-        else:
-            column = False
-            batch_masks = np.zeros(
-                (
-                    n,
-                    self.mini_batch,
-                    self.output_size[0],
-                    self.output_size[1],
-                    self.num_classes,
-                )
-            )
+        )
 
         # preprocess and assign images and masks to the batch
         for i in range(n):
-            if column:
-                raw_masks = np.zeros(
-                    (self.mini_batch, self.output_size[0] * self.output_size[1], 1)
-                )
-            else:
-                raw_masks = np.zeros(
-                    (self.mini_batch, self.output_size[0], self.output_size[1])
-                )
+            raw_masks = np.zeros(
+                (self.mini_batch, self.output_reshape[0], self.output_reshape[1])
+            )
 
             for j in range(self.mini_batch):
                 image_index = i * self.mini_batch + j
+
                 image = Image.open(
                     os.path.join(self.image_path, batch_image_filenames[image_index])
                 ).resize(self.image_size, Image.ANTIALIAS)
 
                 image = np.array(image)
-                image = image / 255
 
                 mask = Image.open(
                     os.path.join(self.mask_path, batch_mask_filenames[image_index])
@@ -462,24 +453,19 @@ class FlowGeneratorExperimental(Sequence):
                     ) = ImagePreprocessor.augmentation_pipeline(
                         image,
                         mask=mask,
-                        input_size=self.image_size,
-                        output_size=self.output_size,
-                        output_reshape=self.output_reshape,
                         seed=image_seed,
                         #!both preprocessing queues are assigned by this time
                         image_queue=self.preprocessing_queue_image,  # type: ignore
                         mask_queue=self.preprocessing_queue_mask,  # type: ignore
                     )
-                if column:
-                    mask = np.reshape(mask, self.output_size)
 
                 batch_images[i, j, :, :, :] = image
                 # NOTE: this provides the flexibility required to process both
                 # column and matrix vectors
-                raw_masks[j, ...] = mask
+                raw_masks[j, :, :] = mask
 
-            batch_masks[i, ...] = ImagePreprocessor.onehot_encode(
-                raw_masks, self.output_size, self.num_classes
+            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
+                raw_masks, self.num_classes
             )
 
         # chaches the batch
@@ -509,6 +495,16 @@ class FlowGeneratorExperimental(Sequence):
 
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
+        if self.column_vector:
+            batch_masks = np.reshape(
+                batch_masks,
+                (
+                    self.mini_batch,
+                    batch_masks.shape[1] * batch_masks[2],
+                    self.num_classes,
+                ),
+            )
+
         if self.image_ordering == ImageOrdering.CHANNEL_FIRST:
             batch_images = np.moveaxis(batch_images, -1, 1)
             batch_masks = np.moveaxis(batch_masks, -1, 1)

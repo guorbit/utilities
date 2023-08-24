@@ -48,7 +48,7 @@ def test_image_onehot_encoder_squarematrix() -> None:
     onehot_test[:, ::2, :,1] = 1
     onehot_test[:, 1::2,:, 0] = 1
 
-    one_hot_image = ImagePreprocessor.onehot_encode(mask, output_size, n_classes)
+    one_hot_image = ImagePreprocessor.onehot_encode(mask, n_classes)
 
     assert one_hot_image.shape == (
         1,
@@ -80,8 +80,6 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
     image_new, mask_new = ImagePreprocessor.augmentation_pipeline(
         image,
         mask,
-        input_size,
-        output_size,
         image_queue=image_queue,
         mask_queue=mask_queue,
     )
