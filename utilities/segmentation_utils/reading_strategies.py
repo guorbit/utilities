@@ -51,26 +51,34 @@ class HyperspectralImageStrategy:
         image_path:str,
         image_resize:tuple[int,int],
         image_resample = Image.Resampling.NEAREST,
-        
+        package = rasterio
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.image_resize = image_resize
         self.image_resample = image_resample
+        self.package = package
+        #gets the number of bands for the dataset
+        self.bands = package.open(os.path.join(self.image_path, self.image_filenames[0])).count
   
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         #read images with rasterio
-        for i in range(batch_size):
-            image_index = i + dataset_index
-            #open the source raster dataset
-            with rasterio.open(
-                os.path.join(self.image_path, self.image_filenames[image_index])
+        batch_filenames = self.image_filenames[dataset_index:dataset_index + batch_size]
+
+        #defines the array that will contain the images
+        images = np.zeros((batch_size, self.bands, self.image_resize[0], self.image_resize[1]))
+        for i,filename in enumerate(batch_filenames):
+            with self.package.open(
+                os.path.join(self.image_path, filename)
                 ) as dataset:
                  #.read() returns a numpy array that contains the raster cell values in your file.
                 image = dataset.read()
-                image = image / 255
-                image = np.resize(self.image_resize, self.image_resample)
-        return image
+            images[i,:,:,:] = np.resize(image,self.image_resize)
+
+        #ensures channel-last orientation for the reader
+        np.moveaxis(images,1,3)
+   
+        return np.array(images)
     
     def get_dataset_size(self, mini_batch) -> int:
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
