@@ -79,33 +79,43 @@ def test_get_dataset_size() -> None:
     patch.undo()
     patch.undo()
 
-
-#!to be continued...
 class MockRasterio():
-    # def __init__(self, image_path, image_filenames):
-    #     self.image_path = image_path
-    #     self.image_filenames = image_filenames
     
-    def __init__(self, func):
-        self.func = func
+    def __init__(self):
+        self.shape = (224, 224) #dimensions for raster data 
+        self.dtypes = ['int32'] #data type of raster data that would be returned by .open()
+        #a list containing a string representing a data type
+        #32 bit int data type
 
-    def mock_open(self, *args, **kwargs):
+    def read(self, *args, **kwargs):
+        return np.zeros(self.shape, self.dtypes[0])
+    
+    #these functions are invoked when a 'with' statement is executed
+    def __enter__(self):
+        #called at the beginning of a 'with' block
+        return self #returns instance of MockRasterio class itself
+    
+    def __exit__(self, type, value, traceback):
+        #called at the end of a 'with' block
+        pass
+
+def test_hyperspectral_open():
         patch = MonkeyPatch()
         mock_filenames = ["a", "b", "c"]
         patch.setattr(os, "listdir", lambda x: mock_filenames)
 
-        image_file = os.path.join(self.image_path, self.image_filenames[image_index])
-        dataset = rasterio.open(image_file)
-        self.func(dataset)
+        def mock_open(*args, **kwargs): #local function to the test
+            #defines behaviour of mock object that replaces rasterio.open()
+            return MockRasterio()
+        
+        patch.setattr(rasterio, "open", mock_open)
+        image_path = "tests/segmentation_utils_tests/test_strategies"
+        dataset_list = []
 
-    def mock_join(self):
-        patch = MonkeyPatch()
-        join = lambda x: "image_path"
-        patch.setattr(os.path, "join", join)
-        return join
-
-
-
-
-def process_data(package=MockRasterio):
-    package.open
+        for filename in mock_filenames:
+            file_path = os.path.join(image_path, filename)
+            dataset = rasterio.open(file_path)
+            dataset_list.append(dataset)
+    
+            assert dataset.shape == (224, 224)
+            assert np.array_equal (dataset.read(), np.zeros((224, 224), dtype='int32'))
