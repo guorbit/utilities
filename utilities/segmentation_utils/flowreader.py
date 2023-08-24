@@ -16,6 +16,8 @@ from tqdm import tqdm
 from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.constants import ImageOrdering
 from utilities.segmentation_utils.ImagePreprocessor import IPreprocessor
+from utilities.segmentation_utils.reading_strategies import IReader
+
 
 
 class FlowGenerator:
@@ -266,6 +268,8 @@ class FlowGeneratorExperimental(Sequence):
         output_size: tuple[int, int],
         channel_mask: list[bool],
         num_classes: int,
+        input_strategy: IReader,
+        output_strategy: IReader,
         shuffle: bool = True,
         batch_size: int = 2,
         preprocessing_enabled: bool = True,
@@ -277,6 +281,7 @@ class FlowGeneratorExperimental(Sequence):
         weights_path: Optional[str] = None,
         shuffle_counter: int = 0,
         image_ordering: ImageOrdering = ImageOrdering.CHANNEL_LAST,
+        
     ):
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
@@ -307,6 +312,9 @@ class FlowGeneratorExperimental(Sequence):
 
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.mask_filenames = np.array(sorted(os.listdir(self.mask_path)))
+
+        self.input_strategy = input_strategy
+        self.output_strategy = output_strategy
 
         # should be moved out as a strategy
         if self.read_weights:
@@ -387,10 +395,10 @@ class FlowGeneratorExperimental(Sequence):
             raise ValueError("The batch size must be divisible by the mini batch size")
         self.mini_batch = batch_size
 
-    def __read_batch(self, start: int, end: int) -> None:
+    def __read_batch(self, dataset_index: int, end: int) -> None:
         # read image batch
-        batch_image_filenames = self.image_filenames[start:end]
-        batch_mask_filenames = self.mask_filenames[start:end]
+        batch_image_filenames = self.image_filenames[dataset_index:end]
+        batch_mask_filenames = self.mask_filenames[dataset_index:end]
         for image, mask in zip(batch_image_filenames, batch_mask_filenames):
             if image != mask:
                 raise ValueError("The image and mask directories do not match")
@@ -398,75 +406,40 @@ class FlowGeneratorExperimental(Sequence):
         # calculate number of mini batches in a batch
         n = self.batch_size // self.mini_batch
 
-        batch_images = np.zeros(
-            (
-                n,
-                self.mini_batch,
-                self.image_size[0],
-                self.image_size[1],
-                self.n_channels,
-            )
-        )
-
-        batch_masks = np.zeros(
-            (
-                n,
-                self.mini_batch,
-                self.output_reshape[0],
-                self.output_reshape[1],
-                self.num_classes,
-            )
-        )
+        batch_images = self.input_strategy.read_batch(self.batch_size, dataset_index)
+        batch_masks = self.output_strategy.read_batch(self.batch_size, dataset_index)
 
         # preprocess and assign images and masks to the batch
-        for i in range(n):
-            raw_masks = np.zeros(
-                (self.mini_batch, self.output_reshape[0], self.output_reshape[1])
-            )
+    
+        if self.preprocessing_enabled:
+            for i in range(self.batch_size):
+                image = batch_images[i, ...]
+                mask = batch_masks[i, ...]
+                if self.preprocessing_seed is None:
+                    image_seed = np.random.randint(0, 100000)
+                else:
+                    state = np.random.RandomState(self.preprocessing_seed)
+                    image_seed = state.randint(0, 100000)
+                (
+                    image,
+                    mask,
+                ) = ImagePreprocessor.augmentation_pipeline(
+                    image,
+                    mask=mask,
+                    seed=image_seed,
+                    #!both preprocessing queues are assigned by this time
+                    image_queue=self.preprocessing_queue_image,  # type: ignore
+                    mask_queue=self.preprocessing_queue_mask,  # type: ignore
+                )
+                batch_images[i, ...] = image
+                batch_masks[i, ...] = mask
 
-            for j in range(self.mini_batch):
-                image_index = i * self.mini_batch + j
+        batch_masks = ImagePreprocessor.onehot_encode(
+            batch_masks, self.num_classes
+        )
 
-                image = Image.open(
-                    os.path.join(self.image_path, batch_image_filenames[image_index])
-                ).resize(self.image_size, Image.ANTIALIAS)
-
-                image = np.array(image)
-
-                mask = Image.open(
-                    os.path.join(self.mask_path, batch_mask_filenames[image_index])
-                ).resize(self.output_reshape)
-
-                mask = np.array(mask)
-                # image = image[:, :, self.channel_mask]
-
-                if self.preprocessing_enabled:
-                    if self.preprocessing_seed is None:
-                        image_seed = np.random.randint(0, 100000)
-                    else:
-                        state = np.random.RandomState(self.preprocessing_seed)
-                        image_seed = state.randint(0, 100000)
-
-                    (
-                        image,
-                        mask,
-                    ) = ImagePreprocessor.augmentation_pipeline(
-                        image,
-                        mask=mask,
-                        seed=image_seed,
-                        #!both preprocessing queues are assigned by this time
-                        image_queue=self.preprocessing_queue_image,  # type: ignore
-                        mask_queue=self.preprocessing_queue_mask,  # type: ignore
-                    )
-
-                batch_images[i, j, :, :, :] = image
-                # NOTE: this provides the flexibility required to process both
-                # column and matrix vectors
-                raw_masks[j, :, :] = mask
-
-            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
-                raw_masks, self.num_classes
-            )
+        batch_images = batch_images.reshape(n, self.mini_batch, batch_images.shape[1], batch_images.shape[2], batch_images.shape[3])
+        batch_masks = batch_masks.reshape(n, self.batch_size, batch_images.shape[1], batch_images[2], batch_images[3])
 
         # chaches the batch
         self.image_batch_store = batch_images
