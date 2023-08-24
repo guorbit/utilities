@@ -1,12 +1,9 @@
 import os
-from types import ModuleType
-from typing import Protocol, Union
+from typing import Any, Protocol
 
 import numpy as np
 import rasterio
 from PIL import Image
-
-from tests.mock_classes import MockRasterio
 
 
 class IReader(Protocol):
@@ -58,7 +55,7 @@ class HyperspectralImageStrategy:
         image_path: str,
         image_resize: tuple[int, int],
         image_resample=Image.Resampling.NEAREST,
-        package: Union[MockRasterio, ModuleType] = rasterio,
+        package: Any = rasterio,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))

@@ -26,6 +26,11 @@ dependencies = [
 [tool.setuptools]
 packages = ["utilities"]
 
+[tool.pytest.ini_options]
+markers = [
+    "staging: Mark a test as part of the staging environment",
+    "production: Mark a test as part of the production environment",
+]
 
 [project.optional-dependencies]
 dev = [

@@ -1,12 +1,38 @@
 import os
 
 import numpy as np
-import rasterio
 from PIL import Image
 from pytest import MonkeyPatch
 
 from utilities.segmentation_utils.reading_strategies import (
-    HyperspectralImageStrategy, MockRasterio, RGBImageStrategy)
+    HyperspectralImageStrategy, RGBImageStrategy)
+
+
+class MockRasterio:
+    def __init__(self, n, size, bands, dtypes):
+        self.n = n
+        self.size = size
+        self.bands = bands
+        self.dtypes = dtypes
+
+    def open(self, *args, **kwargs):
+        return self
+
+    @property
+    def count(self) -> int:
+        return self.bands
+
+    def read(self, *args, **kwargs):
+        return np.zeros((self.bands, self.size[0], self.size[1]), self.dtypes[0])
+
+    # these functions are invoked when a 'with' statement is executed
+    def __enter__(self):
+        # called at the beginning of a 'with' block
+        return self  # returns instance of MockRasterio class itself
+
+    def __exit__(self, type, value, traceback):
+        # called at the end of a 'with' block
+        pass
 
 
 def test_read_batch_image_path() -> None:
@@ -106,7 +132,7 @@ def test_hyperspectral_open():
     patch.setattr(os, "listdir", lambda x: mock_filenames)
 
     image_path = "tests/segmentation_utils_tests/test_strategies"
-    
+
     mock_data = {
         "n": 3,
         "size": (224, 224),

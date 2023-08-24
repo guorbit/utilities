@@ -110,3 +110,10 @@ def test_set_mini_batch_size_not_devisable() -> None:
 
     assert exc_info.value.args[0] == "The batch size must be divisible by the mini batch size"
     
+################
+# Staging tests#
+################
+
+@pytest.mark.staging
+def test_read_batch_staging() -> None:
+    pass
