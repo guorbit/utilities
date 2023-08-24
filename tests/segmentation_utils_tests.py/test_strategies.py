@@ -31,7 +31,9 @@ def test_read_batch_image_path() -> None:
 
     batch_size = 2
     dataset_index = 0
-    image_strategy.read_batch(batch_size, dataset_index)
+    result = image_strategy.read_batch(batch_size, dataset_index)
+
+    assert result.shape == (2, 224, 224, 3)
     patch.undo()
     patch.undo()
 
@@ -60,6 +62,7 @@ def test_read_batch_returns_nparray() -> None:
 
     result = image_strategy.read_batch(batch_size, dataset_index)
     assert isinstance(result, np.ndarray)
+    assert result.shape == (2, 224, 224, 3)
 
     patch.undo()
     patch.undo()

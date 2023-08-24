@@ -8,12 +8,12 @@ from PIL import Image
 
 
 class MockRasterio:
-    def __init__(self, n , size, bands, dtypes):
+    def __init__(self, n, size, bands, dtypes):
         self.n = n
         self.size = size
         self.bands = bands
         self.dtypes = dtypes
- 
+
     def open(self, *args, **kwargs):
         return self
 
@@ -22,7 +22,7 @@ class MockRasterio:
         return self.bands
 
     def read(self, *args, **kwargs):
-        return np.zeros((self.bands,self.size[0],self.size[1]), self.dtypes[0])
+        return np.zeros((self.bands, self.size[0], self.size[1]), self.dtypes[0])
 
     # these functions are invoked when a 'with' statement is executed
     def __enter__(self):
@@ -58,15 +58,19 @@ class RGBImageStrategy:
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         # read images with PIL
+        batch_filenames = self.image_filenames[
+            dataset_index : dataset_index + batch_size
+        ]
+        images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
 
         for i in range(batch_size):
             image_index = i + dataset_index
             image = Image.open(
-                os.path.join(self.image_path, self.image_filenames[image_index])
+                os.path.join(self.image_path, batch_filenames[i])
             ).resize(self.image_size, self.image_resample)
             image = np.array(image)
-            image = image / 255
-        return image
+            images[i, :, :, :] = image
+        return images
 
     def get_dataset_size(self, mini_batch) -> int:
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
@@ -91,9 +95,9 @@ class HyperspectralImageStrategy:
         self.bands = package.open(
             os.path.join(self.image_path, self.image_filenames[0])
         ).count
-        print("-----------My very cool bands--------: ",self.bands)
+        print("-----------My very cool bands--------: ", self.bands)
 
-    def read_batch(self, batch_size:int, dataset_index:int) -> np.ndarray:
+    def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         # read images with rasterio
         batch_filenames = self.image_filenames[
             dataset_index : dataset_index + batch_size
