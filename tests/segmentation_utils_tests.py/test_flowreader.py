@@ -7,6 +7,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from pytest import MonkeyPatch
 
 from utilities.segmentation_utils import ImagePreprocessor
+from utilities.segmentation_utils.constants import ImageOrdering
 from utilities.segmentation_utils.flowreader import FlowGeneratorExperimental
 
 
@@ -182,6 +183,126 @@ def test_read_batch_get_item() -> None:
 
     assert batch[0].shape == (2, 512, 512, 3)
     assert batch[1].shape == (2, 512, 512, 7)
+
+@pytest.mark.development
+def test_read_batch_get_item_diff_minibatch() -> None:
+    patch = MonkeyPatch()
+    # mock list directory
+    patch.setattr(os, "listdir", lambda x: ["a", "b", "c"])
+
+    input_strategy = DummyStrategy()
+    output_strategy = DummyStrategy(input_shape=(512, 512))
+
+    # create generator instance
+
+    generator = FlowGeneratorExperimental(
+        image_path="tests/segmentation_utils_tests/flow_reader_test",
+        mask_path="tests/segmentation_utils_tests/flow_reader_test",
+        batch_size=2,
+        image_size=(512, 512),
+        output_size=(512, 512),
+        num_classes=7,
+        channel_mask=[True, True, True],
+        input_strategy=input_strategy,
+        output_strategy=output_strategy,
+    )
+
+    generator.set_mini_batch_size(1)
+
+    batch = generator[0]
+    
+
+    assert batch[0].shape == (1, 512, 512, 3)
+    assert batch[1].shape == (1, 512, 512, 7)
+
+
+@pytest.mark.development
+def test_read_batch_get_item_channel_first() -> None:
+    patch = MonkeyPatch()
+    # mock list directory
+    patch.setattr(os, "listdir", lambda x: ["a", "b", "c"])
+
+    input_strategy = DummyStrategy()
+    output_strategy = DummyStrategy(input_shape=(512, 512))
+
+    # create generator instance
+
+    generator = FlowGeneratorExperimental(
+        image_path="tests/segmentation_utils_tests/flow_reader_test",
+        mask_path="tests/segmentation_utils_tests/flow_reader_test",
+        batch_size=2,
+        image_size=(512, 512),
+        output_size=(512, 512),
+        num_classes=7,
+        channel_mask=[True, True, True],
+        input_strategy=input_strategy,
+        output_strategy=output_strategy,
+        image_ordering=ImageOrdering.CHANNEL_FIRST,
+    )
+
+    batch = generator[0]
+
+    assert batch[0].shape == (2, 3, 512, 512)
+    assert batch[1].shape == (2, 7, 512, 512)
+
+
+@pytest.mark.development
+def test_read_batch_get_item_column() -> None:
+    patch = MonkeyPatch()
+    # mock list directory
+    patch.setattr(os, "listdir", lambda x: ["a", "b", "c"])
+
+    input_strategy = DummyStrategy()
+    output_strategy = DummyStrategy(input_shape=(512, 512))
+
+    # create generator instance
+
+    generator = FlowGeneratorExperimental(
+        image_path="tests/segmentation_utils_tests/flow_reader_test",
+        mask_path="tests/segmentation_utils_tests/flow_reader_test",
+        batch_size=2,
+        image_size=(512, 512),
+        output_size=(512 * 512, 1),
+        num_classes=7,
+        channel_mask=[True, True, True],
+        input_strategy=input_strategy,
+        output_strategy=output_strategy,
+    )
+
+    batch = generator[0]
+
+    assert batch[0].shape == (2, 512, 512, 3)
+    assert batch[1].shape == (2, 512 * 512, 7)
+
+
+@pytest.mark.development
+def test_read_batch_get_item_column_channel_first() -> None:
+    patch = MonkeyPatch()
+    # mock list directory
+    patch.setattr(os, "listdir", lambda x: ["a", "b", "c"])
+
+    input_strategy = DummyStrategy()
+    output_strategy = DummyStrategy(input_shape=(512, 512))
+
+    # create generator instance
+
+    generator = FlowGeneratorExperimental(
+        image_path="tests/segmentation_utils_tests/flow_reader_test",
+        mask_path="tests/segmentation_utils_tests/flow_reader_test",
+        batch_size=2,
+        image_size=(512, 512),
+        output_size=(512 * 512, 1),
+        num_classes=7,
+        channel_mask=[True, True, True],
+        input_strategy=input_strategy,
+        output_strategy=output_strategy,
+        image_ordering=ImageOrdering.CHANNEL_FIRST,
+    )
+
+    batch = generator[0]
+
+    assert batch[0].shape == (2, 3, 512, 512)
+    assert batch[1].shape == (2, 7, 512 * 512)
 
 
 @pytest.mark.development

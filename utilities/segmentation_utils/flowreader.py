@@ -408,8 +408,6 @@ class FlowGeneratorExperimental(Sequence):
         batch_images = self.input_strategy.read_batch(self.batch_size, dataset_index)
         batch_masks = self.output_strategy.read_batch(self.batch_size, dataset_index)
 
-        print(batch_masks.shape)
-
         # preprocess and assign images and masks to the batch
 
         if self.preprocessing_enabled:
@@ -485,13 +483,14 @@ class FlowGeneratorExperimental(Sequence):
 
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
+
         if self.column_vector:
-            batch_masks = np.reshape(
+            batch_masks = tf.reshape(
                 batch_masks,
                 (
-                    self.mini_batch,
-                    batch_masks.shape[1] * batch_masks[2],
-                    self.num_classes,
+                    batch_masks.shape[0],
+                    batch_masks.shape[1] * batch_masks.shape[2],
+                    batch_masks.shape[3],
                 ),
             )
 
