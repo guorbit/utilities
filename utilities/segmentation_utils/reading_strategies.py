@@ -34,24 +34,28 @@ class RGBImageStrategy:
         )  #!update: added variable to initialiser
         self.image_size = image_size
         self.image_resample = image_resample
-        self.is_color = True
+        
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+        tf.print("Reading batch: ", dataset_index)
         # read images with PIL
         batch_filenames = self.image_filenames[
             dataset_index : dataset_index + batch_size
         ]
+
+        tf.print("Extracted filenames")
+
         images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
-        
+        is_color = True
         for i in range(batch_size):
             tf.print("Reading image: ", batch_filenames[i])
             image = Image.open(
                 os.path.join(self.image_path, batch_filenames[i])
             ).resize(self.image_size, self.image_resample)
             image = np.array(image)
-            if len(image.shape) == 2 and self.is_color:
+            if len(image.shape) == 2 and is_color:
                 images = np.zeros((batch_size, self.image_size[0], self.image_size[1]))
-                self.is_color = False
+                is_color = False
             images[i, ...] = image
         return images
 
