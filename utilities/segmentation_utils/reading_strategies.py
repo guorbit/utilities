@@ -33,6 +33,7 @@ class RGBImageStrategy:
         )  #!update: added variable to initialiser
         self.image_size = image_size
         self.image_resample = image_resample
+        self.is_color = True
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         # read images with PIL
@@ -40,12 +41,15 @@ class RGBImageStrategy:
             dataset_index : dataset_index + batch_size
         ]
         images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
-
+        
         for i in range(batch_size):
             image = Image.open(
                 os.path.join(self.image_path, batch_filenames[i])
             ).resize(self.image_size, self.image_resample)
             image = np.array(image)
+            if len(image.shape) == 2 and self.is_color:
+                images = np.zeros((batch_size, self.image_size[0], self.image_size[1]))
+                is_color = False
             images[i, :, :, :] = image
         return images
 
