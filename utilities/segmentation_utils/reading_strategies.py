@@ -10,7 +10,7 @@ class IReader(Protocol):
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         ...
 
-    def get_dataset_size(self) -> int:
+    def get_dataset_size(self, minibatch:int) -> int:
         ...
 
 
