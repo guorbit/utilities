@@ -71,7 +71,7 @@ jobs:
       run: |
         mkdir -p ./coverage
         pip install pytest-cov pytest-mock
-        python -m pytest --cov --cov-report=xml:./coverage/coverage.xml
+        python -m pytest -m "not staging" --cov --cov-report=xml:./coverage/coverage.xml
     
     - name: Upload coverage
       uses: codecov/codecov-action@v3
