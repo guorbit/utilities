@@ -30,6 +30,7 @@ packages = ["utilities"]
 markers = [
     "staging: Mark a test as part of the staging environment",
     "production: Mark a test as part of the production environment",
+    "development: Mark a test as part of the development environment",
 ]
 
 [project.optional-dependencies]

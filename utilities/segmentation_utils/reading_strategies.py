@@ -68,13 +68,13 @@ class HyperspectralImageStrategy:
     def __init__(
         self,
         image_path: str,
-        image_resize: tuple[int, int],
+        image_size: tuple[int, int],
         image_resample=Image.Resampling.NEAREST,
         package: Any = rasterio,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
-        self.image_resize = image_resize
+        self.image_size = image_size
         self.image_resample = image_resample
         self.package = package
         # gets the number of bands for the dataset
@@ -90,13 +90,13 @@ class HyperspectralImageStrategy:
 
         # defines the array that will contain the images
         images = np.zeros(
-            (batch_size, self.bands, self.image_resize[0], self.image_resize[1])
+            (batch_size, self.bands, self.image_size[0], self.image_size[1])
         )
         for i, filename in enumerate(batch_filenames):
             with self.package.open(os.path.join(self.image_path, filename)) as dataset:
                 # .read() returns a numpy array that contains the raster cell values in your file.
                 image = dataset.read()
-            images[i, :, :, :] = np.resize(image, self.image_resize)
+            images[i, :, :, :] = np.resize(image, self.image_size)
 
         # ensures channel-last orientation for the reader
         images = np.moveaxis(images, 1, 3)
@@ -108,7 +108,7 @@ class HyperspectralImageStrategy:
         return dataset_size
 
     def get_image_size(self) -> tuple[int,int]:
-        return self.image_resize
+        return self.image_size
 
     def shuffle_filenames(self,seed:int) -> None:
         state = np.random.RandomState(seed)
