@@ -49,7 +49,7 @@ class RGBImageStrategy:
             image = np.array(image)
             if len(image.shape) == 2 and self.is_color:
                 images = np.zeros((batch_size, self.image_size[0], self.image_size[1]))
-                is_color = False
+                self.is_color = False
             images[i, :, :, :] = image
         return images
 
