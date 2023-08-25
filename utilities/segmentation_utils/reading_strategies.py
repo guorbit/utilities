@@ -7,10 +7,10 @@ from PIL import Image
 
 
 class IReader(Protocol):
-    def read_batch(self, start: int, end: int) -> None:
+    def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         ...
 
-    def get_dataset_size(self) -> None:
+    def get_dataset_size(self) -> int:
         ...
 
 

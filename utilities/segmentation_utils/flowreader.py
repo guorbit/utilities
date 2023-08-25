@@ -8,6 +8,7 @@ from typing import Optional
 
 import numpy as np
 import pandas as pd
+import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
 from PIL import Image
@@ -17,7 +18,6 @@ from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.constants import ImageOrdering
 from utilities.segmentation_utils.ImagePreprocessor import IPreprocessor
 from utilities.segmentation_utils.reading_strategies import IReader
-
 
 
 class FlowGenerator:
@@ -281,7 +281,6 @@ class FlowGeneratorExperimental(Sequence):
         weights_path: Optional[str] = None,
         shuffle_counter: int = 0,
         image_ordering: ImageOrdering = ImageOrdering.CHANNEL_LAST,
-        
     ):
         if len(output_size) != 2:
             raise ValueError("The output size has to be a tuple of length 2")
@@ -409,8 +408,10 @@ class FlowGeneratorExperimental(Sequence):
         batch_images = self.input_strategy.read_batch(self.batch_size, dataset_index)
         batch_masks = self.output_strategy.read_batch(self.batch_size, dataset_index)
 
+        print(batch_masks.shape)
+
         # preprocess and assign images and masks to the batch
-    
+
         if self.preprocessing_enabled:
             for i in range(self.batch_size):
                 image = batch_images[i, ...]
@@ -434,12 +435,28 @@ class FlowGeneratorExperimental(Sequence):
                 batch_images[i, ...] = image
                 batch_masks[i, ...] = mask
 
-        batch_masks = ImagePreprocessor.onehot_encode(
-            batch_masks, self.num_classes
-        )
+        batch_masks = ImagePreprocessor.onehot_encode(batch_masks, self.num_classes)
 
-        batch_images = batch_images.reshape(n, self.mini_batch, batch_images.shape[1], batch_images.shape[2], batch_images.shape[3])
-        batch_masks = batch_masks.reshape(n, self.batch_size, batch_images.shape[1], batch_images[2], batch_images[3])
+        batch_images = tf.reshape(
+            batch_images,
+            (
+                n,
+                self.mini_batch,
+                self.image_size[0],
+                self.image_size[1],
+                self.n_channels,
+            ),
+        )
+        batch_masks = tf.reshape(
+            batch_masks,
+            (
+                n,
+                self.mini_batch,
+                self.output_size[0],
+                self.output_size[1],
+                self.num_classes,
+            ),
+        )
 
         # chaches the batch
         self.image_batch_store = batch_images
