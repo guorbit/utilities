@@ -18,8 +18,14 @@ class DummyStrategy:
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         return np.zeros((batch_size, *self.input_shape))
 
-    def get_dataset_size(self) -> int:
+    def get_dataset_size(self,minibatch) -> int:
         return 10
+
+    def get_image_size(self) -> tuple[int, int]:
+        return self.input_shape[:2]
+
+    def shuffle_filenames(self, seed: int) -> None:
+        pass
 
 
 @pytest.mark.development
@@ -33,10 +39,6 @@ def test_can_create_instance() -> None:
 
     # create generator instance
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
@@ -55,10 +57,6 @@ def test_set_preprocessing_pipeline() -> None:
     output_strategy = DummyStrategy()
     # create generator instance
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
@@ -83,10 +81,6 @@ def test_set_mini_batch_size() -> None:
 
     # create generator instance
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
@@ -108,10 +102,6 @@ def test_set_mini_batch_size_too_large() -> None:
 
     # create generator instance
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
@@ -137,10 +127,6 @@ def test_set_mini_batch_size_not_devisable() -> None:
 
     # create generator instance
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         batch_size=3,
@@ -168,11 +154,7 @@ def test_read_batch_get_item() -> None:
     # create generator instance
 
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
         batch_size=2,
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
@@ -183,6 +165,7 @@ def test_read_batch_get_item() -> None:
 
     assert batch[0].shape == (2, 512, 512, 3)
     assert batch[1].shape == (2, 512, 512, 7)
+
 
 @pytest.mark.development
 def test_read_batch_get_item_diff_minibatch() -> None:
@@ -196,11 +179,7 @@ def test_read_batch_get_item_diff_minibatch() -> None:
     # create generator instance
 
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
         batch_size=2,
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
@@ -210,7 +189,6 @@ def test_read_batch_get_item_diff_minibatch() -> None:
     generator.set_mini_batch_size(1)
 
     batch = generator[0]
-    
 
     assert batch[0].shape == (1, 512, 512, 3)
     assert batch[1].shape == (1, 512, 512, 7)
@@ -228,11 +206,7 @@ def test_read_batch_get_item_channel_first() -> None:
     # create generator instance
 
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
         batch_size=2,
-        image_size=(512, 512),
-        output_size=(512, 512),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
@@ -258,15 +232,12 @@ def test_read_batch_get_item_column() -> None:
     # create generator instance
 
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
         batch_size=2,
-        image_size=(512, 512),
-        output_size=(512 * 512, 1),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
         output_strategy=output_strategy,
+        is_column=True,
     )
 
     batch = generator[0]
@@ -287,16 +258,13 @@ def test_read_batch_get_item_column_channel_first() -> None:
     # create generator instance
 
     generator = FlowGeneratorExperimental(
-        image_path="tests/segmentation_utils_tests/flow_reader_test",
-        mask_path="tests/segmentation_utils_tests/flow_reader_test",
         batch_size=2,
-        image_size=(512, 512),
-        output_size=(512 * 512, 1),
         num_classes=7,
         channel_mask=[True, True, True],
         input_strategy=input_strategy,
         output_strategy=output_strategy,
         image_ordering=ImageOrdering.CHANNEL_FIRST,
+        is_column=True,
     )
 
     batch = generator[0]
@@ -318,11 +286,7 @@ def test_read_batch_get_item_expand_dim_fail() -> None:
         # create generator instance
 
         generator = FlowGeneratorExperimental(
-            image_path="tests/segmentation_utils_tests/flow_reader_test",
-            mask_path="tests/segmentation_utils_tests/flow_reader_test",
             batch_size=2,
-            image_size=(512, 512),
-            output_size=(512, 512),
             num_classes=7,
             channel_mask=[True, True, True],
             input_strategy=input_strategy,
@@ -330,6 +294,26 @@ def test_read_batch_get_item_expand_dim_fail() -> None:
         )
 
         batch = generator[0]
+
+
+def test_raises_error_not_compatible_shape() -> None:
+    with pytest.raises(ValueError) as exc_info:
+        patch = MonkeyPatch()
+        # mock list directory
+        patch.setattr(os, "listdir", lambda x: ["a", "b", "c"])
+
+        input_strategy = DummyStrategy()
+        output_strategy = DummyStrategy(input_shape=(512, 200, 1))
+
+        # create generator instance
+
+        generator = FlowGeneratorExperimental(
+            batch_size=2,
+            num_classes=7,
+            channel_mask=[True, True, True],
+            input_strategy=input_strategy,
+            output_strategy=output_strategy,
+        )
 
 
 ################

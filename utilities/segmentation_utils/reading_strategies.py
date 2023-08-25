@@ -10,14 +10,15 @@ class IReader(Protocol):
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         ...
 
-    def get_dataset_size(self) -> int:
+    def get_dataset_size(self,minibatch:int) -> int:
         ...
 
-    def get_image_size(self) -> int:
+    def get_image_size(self) -> tuple[int,int]:
         ...
 
-    def __shuffle_filenames__(self) -> None:
+    def shuffle_filenames(self,seed:int) -> None:
         ...
+
 
 class RGBImageStrategy:
     def __init__(
@@ -51,18 +52,15 @@ class RGBImageStrategy:
     def get_dataset_size(self, mini_batch) -> int:
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
-    
-    def get_image_size(self) -> int:
+
+    def get_image_size(self) -> tuple[int,int]:
         return self.image_size
-    
-    def __shuffle_filenames__(self) -> None:
-        if self.shuffle:
-            state = np.random.RandomState(self.seed + self.shuffle_counter)
-            self.shuffle_counter += 1
-            shuffled_indices = state.permutation(len(self.image_filenames))
-            shuffled_indices = shuffled_indices.astype(int)
-            for array in self.linked_data:
-                array = array[shuffled_indices]
+
+    def shuffle_filenames(self,seed:int) -> None:
+        state = np.random.RandomState(seed)
+        shuffled_indices = state.permutation(len(self.image_filenames))
+        shuffled_indices = shuffled_indices.astype(int)
+        self.image_filenames = self.image_filenames[shuffled_indices]
 
 
 class HyperspectralImageStrategy:
@@ -108,15 +106,12 @@ class HyperspectralImageStrategy:
     def get_dataset_size(self, mini_batch) -> int:
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
-    
-    def get_image_size(self) -> int:
-        return self.image_size
-    
-    def __shuffle_filenames__(self) -> None:
-        if self.shuffle:
-            state = np.random.RandomState(self.seed + self.shuffle_counter)
-            self.shuffle_counter += 1
-            shuffled_indices = state.permutation(len(self.image_filenames))
-            shuffled_indices = shuffled_indices.astype(int)
-            for array in self.linked_data:
-                array = array[shuffled_indices]
+
+    def get_image_size(self) -> tuple[int,int]:
+        return self.image_resize
+
+    def shuffle_filenames(self,seed:int) -> None:
+        state = np.random.RandomState(seed)
+        shuffled_indices = state.permutation(len(self.image_filenames))
+        shuffled_indices = shuffled_indices.astype(int)
+        self.image_filenames = self.image_filenames[shuffled_indices]
