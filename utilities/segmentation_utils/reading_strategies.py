@@ -50,7 +50,7 @@ class RGBImageStrategy:
             if len(image.shape) == 2 and self.is_color:
                 images = np.zeros((batch_size, self.image_size[0], self.image_size[1]))
                 self.is_color = False
-            images[i, :, :, :] = image
+            images[i, ...] = image
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
