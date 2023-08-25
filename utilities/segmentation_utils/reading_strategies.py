@@ -3,8 +3,8 @@ from typing import Any, Protocol
 
 import numpy as np
 import rasterio
-from PIL import Image
 import tensorflow as tf
+from PIL import Image
 
 
 class IReader(Protocol):
@@ -44,7 +44,7 @@ class RGBImageStrategy:
         images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
         
         for i in range(batch_size):
-            tf.print("Reading image: ", batch_filenames[i]")
+            tf.print("Reading image: ", batch_filenames[i])
             image = Image.open(
                 os.path.join(self.image_path, batch_filenames[i])
             ).resize(self.image_size, self.image_resample)
