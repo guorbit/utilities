@@ -43,7 +43,7 @@ class RGBImageStrategy:
             dataset_index : dataset_index + batch_size
         ]
 
-        tf.print("Extracted filenames")
+        tf.print("Extracted filenames: ", batch_filenames.shape)
 
         images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
         is_color = True

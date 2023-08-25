@@ -423,7 +423,7 @@ class FlowGeneratorExperimental(Sequence):
             tf.print("Resetting validity index")
 
         if index == self.validity_index:
-            tf.print("Reading new batch")
+            tf.print("Reading new batch at index: ", index)
             self.__read_batch(index * self.batch_size)
             self.validity_index = (self.batch_size // self.mini_batch) + index
 
