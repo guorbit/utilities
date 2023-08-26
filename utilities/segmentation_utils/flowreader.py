@@ -351,7 +351,7 @@ class FlowGeneratorExperimental(Sequence):
         partial_dataset = self.dataset_size * self.mini_batch - dataset_index 
 
         #compare and choose the smaller value, to avoid making a larger batch_size
-        adjusted_batch_size = min(self.batch_size, partial_dataset)
+        adjusted_batch_size = self.batch_size
             
         #calculate number of mini batches in a batch
         n = adjusted_batch_size // self.mini_batch
