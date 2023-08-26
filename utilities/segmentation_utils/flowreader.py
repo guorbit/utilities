@@ -362,7 +362,7 @@ class FlowGeneratorExperimental(Sequence):
         # preprocess and assign images and masks to the batch
 
         if self.preprocessing_enabled:
-            for i in range(self.batch_size):
+            for i in range(adjusted_batch_size):
                 image = batch_images[i, ...]
                 mask = batch_masks[i, ...]
                 if self.preprocessing_seed is None:
@@ -418,7 +418,7 @@ class FlowGeneratorExperimental(Sequence):
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
-        index = index % self.__len__()
+        
 
         if index < self.validity_index - self.batch_size // self.mini_batch:
             self.validity_index = 0
