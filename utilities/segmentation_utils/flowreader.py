@@ -350,9 +350,12 @@ class FlowGeneratorExperimental(Sequence):
         #calculates remaining images in a dataset and scales it down by multiplying with minibatch
         partial_dataset = self.dataset_size * self.mini_batch - dataset_index 
 
+        tf.print("partial_dataset: ", partial_dataset)
         #compare and choose the smaller value, to avoid making a larger batch_size
-        adjusted_batch_size = self.batch_size
-            
+        adjusted_batch_size = min(self.batch_size, partial_dataset)
+        
+        tf.print("adjusted_batch_size: ", adjusted_batch_size)
+
         #calculate number of mini batches in a batch
         n = adjusted_batch_size // self.mini_batch
 
