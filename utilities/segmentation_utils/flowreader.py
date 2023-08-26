@@ -420,18 +420,18 @@ class FlowGeneratorExperimental(Sequence):
 
         if index < self.validity_index - self.batch_size // self.mini_batch:
             self.validity_index = 0
-            tf.print("Resetting validity index")
+         
 
         if index == self.validity_index:
-            tf.print("Reading new batch at index: ", index)
+       
             self.__read_batch(index * self.batch_size)
             self.validity_index = (self.batch_size // self.mini_batch) + index
-        tf.print("batch read at index: ", index)
+       
         # slices new batch
         store_index = (self.batch_size // self.mini_batch) - (
             self.validity_index - index
         )
-        tf.print("store index: ", store_index)
+      
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
 
