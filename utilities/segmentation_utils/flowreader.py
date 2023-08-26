@@ -343,13 +343,19 @@ class FlowGeneratorExperimental(Sequence):
         self.mini_batch = batch_size
 
     def __read_batch(self, dataset_index: int) -> None:
-        # read image batch
+        
+        #!adjust the batch size as it is passed to the function
+        #calculates remaining images in a dataset and scales it down by multiplying with minibatch
+        partial_dataset = self.dataset_size * self.mini_batch - dataset_index 
 
-        # calculate number of mini batches in a batch
-        n = self.batch_size // self.mini_batch
+        #compare and choose the smaller value, to avoid making a larger batch_size
+        adjusted_batch_size = min(self.batch_size, partial_dataset)
+            
+        #calculate number of mini batches in a batch
+        n = adjusted_batch_size // self.mini_batch
 
-        batch_images = self.input_strategy.read_batch(self.batch_size, dataset_index)
-        batch_masks = self.output_strategy.read_batch(self.batch_size, dataset_index)
+        batch_images = self.input_strategy.read_batch(adjusted_batch_size, dataset_index)
+        batch_masks = self.output_strategy.read_batch(adjusted_batch_size, dataset_index)
 
         # preprocess and assign images and masks to the batch
 
