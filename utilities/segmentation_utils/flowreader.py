@@ -345,7 +345,8 @@ class FlowGeneratorExperimental(Sequence):
         self.mini_batch = batch_size
 
     def __read_batch(self, dataset_index: int) -> None:
-        
+        tf.print("dataset_index: ", dataset_index)
+        tf.print("dataset_size: ", self.dataset_size)
         #!adjust the batch size as it is passed to the function
         #calculates remaining images in a dataset and scales it down by multiplying with minibatch
         partial_dataset = self.dataset_size * self.mini_batch - dataset_index 
