@@ -297,7 +297,7 @@ class FlowGeneratorExperimental(Sequence):
         self.validity_index = 0
         self.shuffle_counter = 0
 
-        self.dataset_size = self.__len__()
+        self.dataset_size = self.input_strategy.get_dataset_size(self.mini_batch)
         tf.print("dataset_size: ", self.dataset_size)
 
         self.__shuffle_filenames()
