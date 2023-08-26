@@ -1,12 +1,13 @@
 import os
 
 import numpy as np
-from PIL import Image
 import pytest
+from PIL import Image
 from pytest import MonkeyPatch
 
 from utilities.segmentation_utils.reading_strategies import (
-    HyperspectralImageStrategy, RGBImageStrategy)
+    HyperspectralImageStrategy, HyperspectralImageStrategyMultiThread,
+    RGBImageStrategy)
 
 
 class MockRasterio:
@@ -15,6 +16,7 @@ class MockRasterio:
         self.size = size
         self.bands = bands
         self.dtypes = dtypes
+        self.call_count = 0
 
     def open(self, *args, **kwargs):
         return self
@@ -24,7 +26,10 @@ class MockRasterio:
         return self.bands
 
     def read(self, *args, **kwargs):
-        return np.zeros((self.bands, self.size[0], self.size[1]), self.dtypes[0])
+        self.call_count += 1
+        return np.full(
+            (self.bands, self.size[0], self.size[1]), self.call_count, self.dtypes[0]
+        )
 
     # these functions are invoked when a 'with' statement is executed
     def __enter__(self):
@@ -34,6 +39,10 @@ class MockRasterio:
     def __exit__(self, type, value, traceback):
         # called at the end of a 'with' block
         pass
+
+    def get_count(self):
+        return self.call_count
+
 
 @pytest.mark.development
 def test_read_batch_image_path() -> None:
@@ -63,6 +72,7 @@ def test_read_batch_image_path() -> None:
     assert result.shape == (2, 224, 224, 3)
     patch.undo()
     patch.undo()
+
 
 @pytest.mark.development
 def test_read_batch_returns_nparray() -> None:
@@ -94,6 +104,7 @@ def test_read_batch_returns_nparray() -> None:
     patch.undo()
     patch.undo()
 
+
 @pytest.mark.development
 def test_RGB_get_dataset_size() -> None:
     # checking if the calculation is done correctly
@@ -109,7 +120,7 @@ def test_RGB_get_dataset_size() -> None:
         image_resample=Image.Resampling.NEAREST,
     )
     dataset = len(mock_filenames)  # number of images in the specified path
-    mini_batch = 2  # number of images we want in each batch 
+    mini_batch = 2  # number of images we want in each batch
     expected_value = int(
         np.floor(dataset / float(mini_batch))
     )  # number of sets of images we expect
@@ -118,6 +129,7 @@ def test_RGB_get_dataset_size() -> None:
     assert dataset_size == expected_value
     patch.undo()
     patch.undo()
+
 
 @pytest.mark.development
 def test_Hyperspectral_get_dataset_size() -> None:
@@ -135,7 +147,7 @@ def test_Hyperspectral_get_dataset_size() -> None:
     )
 
     dataset = len(mock_filenames)  # number of images in the specified path
-    mini_batch = 2  # number of images we want in each batch 
+    mini_batch = 2  # number of images we want in each batch
     expected_value = int(
         np.floor(dataset / float(mini_batch))
     )  # number of sets of images we expect
@@ -144,6 +156,7 @@ def test_Hyperspectral_get_dataset_size() -> None:
     assert dataset_size == expected_value
     patch.undo()
     patch.undo()
+
 
 @pytest.mark.development
 def test_hyperspectral_open():
@@ -166,6 +179,30 @@ def test_hyperspectral_open():
     read_images = strategy.read_batch(2, 0)
 
     assert read_images.shape == (2, 224, 224, 3)
+
+
+@pytest.mark.development
+def test_hyperspectral_mt_open():
+    patch = MonkeyPatch()
+    mock_filenames = ["a", "b", "c"]
+    patch.setattr(os, "listdir", lambda x: mock_filenames)
+
+    image_path = "tests/segmentation_utils_tests/test_strategies"
+
+    mock_data = {
+        "n": 3,
+        "size": (224, 224),
+        "bands": 3,
+        "dtypes": ["uint8"],
+    }
+    strategy = HyperspectralImageStrategyMultiThread(
+        image_path, (224, 224), package=MockRasterio(**mock_data)
+    )
+
+    read_images = strategy.read_batch(2, 0)
+
+    assert read_images.shape == (2, 224, 224, 3)
+
 
 @pytest.mark.development
 def test_empty_batch():
@@ -191,9 +228,15 @@ def test_empty_batch():
     dataset_index = 0
     result = image_strategy.read_batch(batch_size, dataset_index)
 
-    assert result.shape == (0, 224, 224, 3) #0 indicates there are no images in the batch
+    assert result.shape == (
+        0,
+        224,
+        224,
+        3,
+    )  # 0 indicates there are no images in the batch
     patch.undo()
     patch.undo()
+
 
 @pytest.mark.development
 def test_out_of_bounds_index():
@@ -215,17 +258,18 @@ def test_out_of_bounds_index():
         image_resample=Image.Resampling.NEAREST,
     )
 
-    batch_size = 2 #not an empty batch
-    dataset_index = len(image_strategy.image_filenames) #out of bounds index 
+    batch_size = 2  # not an empty batch
+    dataset_index = len(image_strategy.image_filenames)  # out of bounds index
 
     try:
-        result = image_strategy.read_batch(batch_size, dataset_index)
+        image_strategy.read_batch(batch_size, dataset_index)
         assert True
-    
+
     except IndexError:
         pass
     patch.undo()
     patch.undo()
+
 
 @pytest.mark.development
 def test_batch_slicing():
@@ -249,13 +293,16 @@ def test_batch_slicing():
 
     batch_size = 10
     dataset_index = 2
-    result = image_strategy.read_batch(batch_size, dataset_index) 
-    assert result.shape[0] == batch_size #compare the size of returned data with batch_size 
+    result = image_strategy.read_batch(batch_size, dataset_index)
+    assert (
+        result.shape[0] == batch_size
+    )  # compare the size of returned data with batch_size
     patch.undo()
     patch.undo()
 
+
 @pytest.mark.development
-def test_RGB_get_image_index():
+def test_RGB_get_image_size():
     patch = MonkeyPatch()
 
     mock_filenames = ["a" for _ in range(20)]
@@ -268,12 +315,12 @@ def test_RGB_get_image_index():
         image_resample=Image.Resampling.NEAREST,
     )
 
-    result = image_strategy.get_image_size(
-    )
-    assert result == (224,224)
+    result = image_strategy.get_image_size()
+    assert result == (224, 224)
+
 
 @pytest.mark.development
-def test_HyperSpectral_get_image_index():
+def test_HyperSpectral_get_image_size():
     patch = MonkeyPatch()
 
     mock_filenames = ["a" for _ in range(20)]
@@ -283,14 +330,31 @@ def test_HyperSpectral_get_image_index():
     image_strategy = HyperspectralImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
+        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
     )
 
-    result = image_strategy.get_image_size(
+    result = image_strategy.get_image_size()
+    assert result == (224, 224)
+
+
+@pytest.mark.development
+def test_HyperSpectral_MT_get_image_size():
+    patch = MonkeyPatch()
+
+    mock_filenames = ["a" for _ in range(20)]
+
+    patch.setattr(os, "listdir", lambda x: mock_filenames)
+
+    image_strategy = HyperspectralImageStrategyMultiThread(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
     )
-    assert result == (224,224)
 
+    result = image_strategy.get_image_size()
+    assert result == (224, 224)
 
+@pytest.mark.development
 def test_RGB_shuffle():
     patch = MonkeyPatch()
 
@@ -316,8 +380,11 @@ def test_RGB_shuffle():
         image_strategy_1.shuffle_filenames(i)
         image_strategy_2.shuffle_filenames(i)
 
-    assert np.array_equal(image_strategy_1.image_filenames, image_strategy_2.image_filenames)
+    assert np.array_equal(
+        image_strategy_1.image_filenames, image_strategy_2.image_filenames
+    )
 
+@pytest.mark.development
 def test_Hyperspectral_shuffle():
     patch = MonkeyPatch()
 
@@ -328,13 +395,13 @@ def test_Hyperspectral_shuffle():
     image_strategy_1 = HyperspectralImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
+        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
     )
 
     image_strategy_2 = HyperspectralImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
+        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
     )
 
     n = 100
@@ -343,4 +410,61 @@ def test_Hyperspectral_shuffle():
         image_strategy_1.shuffle_filenames(i)
         image_strategy_2.shuffle_filenames(i)
 
-    assert np.array_equal(image_strategy_1.image_filenames, image_strategy_2.image_filenames)
+    assert np.array_equal(
+        image_strategy_1.image_filenames, image_strategy_2.image_filenames
+    )
+
+@pytest.mark.development
+def test_Hyperspectral_mt_shuffle():
+    patch = MonkeyPatch()
+
+    mock_filenames = [str(i) for i in range(20)]
+
+    patch.setattr(os, "listdir", lambda x: mock_filenames)
+
+    image_strategy_1 = HyperspectralImageStrategyMultiThread(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
+    )
+
+    image_strategy_2 = HyperspectralImageStrategy(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
+    )
+
+    n = 100
+
+    for i in range(n):
+        image_strategy_1.shuffle_filenames(i)
+        image_strategy_2.shuffle_filenames(i)
+
+    assert np.array_equal(
+        image_strategy_1.image_filenames, image_strategy_2.image_filenames
+    )
+
+@pytest.mark.development
+def test_Hyperspectral_mt_image_in_order():
+    patch = MonkeyPatch()
+
+    mock_filenames = [str(i) for i in range(20)]
+
+    patch.setattr(os, "listdir", lambda x: mock_filenames)
+    mock_package = MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
+    image_strategy = HyperspectralImageStrategyMultiThread(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=mock_package,
+    )
+
+    batch_size = 10
+
+    call_count = mock_package.get_count()
+
+    result = image_strategy.read_batch(batch_size, 0)
+
+    for i in range(call_count, call_count + batch_size):
+        assert np.array_equal(
+            result[i - call_count, :, :, :], np.full((224, 224, 3), i + 1)
+        )

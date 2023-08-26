@@ -297,6 +297,8 @@ class FlowGeneratorExperimental(Sequence):
         self.validity_index = 0
         self.shuffle_counter = 0
 
+        self.dataset_size = self.__len__()
+
         self.__shuffle_filenames()
 
         if len(self.output_size) != 2:
