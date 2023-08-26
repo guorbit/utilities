@@ -344,29 +344,27 @@ class FlowGeneratorExperimental(Sequence):
             raise ValueError("The batch size must be divisible by the mini batch size")
         self.mini_batch = batch_size
         self.__update_dataset_size()
-    
+
     def __update_dataset_size(self) -> None:
         self.dataset_size = self.input_strategy.get_dataset_size(self.mini_batch)
 
-
     def __read_batch(self, dataset_index: int) -> None:
-        tf.print("dataset_index: ", dataset_index)
-        tf.print("dataset_size: ", self.dataset_size)
         #!adjust the batch size as it is passed to the function
-        #calculates remaining images in a dataset and scales it down by multiplying with minibatch
-        partial_dataset = self.dataset_size * self.mini_batch - dataset_index 
+        # calculates remaining images in a dataset and scales it down by multiplying with minibatch
+        partial_dataset = self.dataset_size * self.mini_batch - dataset_index
 
-        tf.print("partial_dataset: ", partial_dataset)
-        #compare and choose the smaller value, to avoid making a larger batch_size
+        # compare and choose the smaller value, to avoid making a larger batch_size
         adjusted_batch_size = min(self.batch_size, partial_dataset)
-        
-        tf.print("adjusted_batch_size: ", adjusted_batch_size)
 
-        #calculate number of mini batches in a batch
+        # calculate number of mini batches in a batch
         n = adjusted_batch_size // self.mini_batch
 
-        batch_images = self.input_strategy.read_batch(adjusted_batch_size, dataset_index)
-        batch_masks = self.output_strategy.read_batch(adjusted_batch_size, dataset_index)
+        batch_images = self.input_strategy.read_batch(
+            adjusted_batch_size, dataset_index
+        )
+        batch_masks = self.output_strategy.read_batch(
+            adjusted_batch_size, dataset_index
+        )
 
         # preprocess and assign images and masks to the batch
 
@@ -423,12 +421,10 @@ class FlowGeneratorExperimental(Sequence):
         # required to check when to read the next batch
 
     def __len__(self) -> int:
-        tf.print("len called")
         return self.input_strategy.get_dataset_size(self.mini_batch)
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
-        
 
         if index < self.validity_index - self.batch_size // self.mini_batch:
             self.validity_index = 0
