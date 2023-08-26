@@ -69,6 +69,75 @@ class RGBImageStrategy:
         self.image_filenames = self.image_filenames[shuffled_indices]
 
 
+class RGBImageStrategyMultiThread:
+    def __init__(
+        self,
+        image_path: str,
+        image_size: tuple[int, int],
+        image_resample=Image.Resampling.NEAREST,
+        max_workers: int = 8,
+    ):
+        self.image_path = image_path
+        self.image_filenames = np.array(
+            sorted(os.listdir(self.image_path))
+        )  #!update: added variable to initialiser
+        self.image_size = image_size
+        self.image_resample = image_resample
+        self.max_workers = max_workers
+
+    def __read_single_image_pil(self, filename, image_path, image_size, image_resample):
+        image = Image.open(os.path.join(image_path, filename)).resize(
+            image_size, image_resample
+        )
+        return np.array(image)
+
+    def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
+        batch_filenames = self.image_filenames[
+            dataset_index : dataset_index + batch_size
+        ]
+
+        images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
+        is_color = True
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_index = {
+                executor.submit(
+                    self.__read_single_image_pil,
+                    filename,
+                    self.image_path,
+                    self.image_size,
+                    self.image_resample,
+                ): i
+                for i, filename in enumerate(batch_filenames)
+            }
+            for future in futures.as_completed(future_to_index):
+                i = future_to_index[future]
+                image = future.result()
+
+                if len(image.shape) == 2 and is_color:
+                    images = np.zeros(
+                        (batch_size, self.image_size[0], self.image_size[1])
+                    )
+                    is_color = False
+
+                images[i, ...] = image
+
+        return images
+
+    def get_dataset_size(self, mini_batch) -> int:
+        dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
+        return dataset_size
+
+    def get_image_size(self) -> tuple[int, int]:
+        return self.image_size
+
+    def shuffle_filenames(self, seed: int) -> None:
+        state = np.random.RandomState(seed)
+        shuffled_indices = state.permutation(len(self.image_filenames))
+        shuffled_indices = shuffled_indices.astype(int)
+        self.image_filenames = self.image_filenames[shuffled_indices]
+
+
 class HyperspectralImageStrategy:
     # read images with rasterio
     def __init__(
