@@ -424,7 +424,7 @@ class FlowGeneratorExperimental(Sequence):
 
         if index == self.validity_index:
        
-            self.__read_batch(index * self.batch_size)
+            self.__read_batch(index * self.mini_batch)
             self.validity_index = (self.batch_size // self.mini_batch) + index
        
         # slices new batch
