@@ -7,12 +7,9 @@ import os
 from typing import Optional
 
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
-from PIL import Image
-from tqdm import tqdm
 
 from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.constants import ImageOrdering
@@ -273,9 +270,8 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_queue_image: IPreprocessor = ImagePreprocessor.generate_image_queue(),
         preprocessing_queue_mask: IPreprocessor = ImagePreprocessor.generate_mask_queue(),
         image_ordering: ImageOrdering = ImageOrdering.CHANNEL_LAST,
-        is_column:bool = False,
+        is_column: bool = False,
     ):
-        
         self.input_strategy = input_strategy
         self.output_strategy = output_strategy
         self.batch_size = batch_size
@@ -292,11 +288,9 @@ class FlowGeneratorExperimental(Sequence):
 
         self.preprocessing_queue_image = preprocessing_queue_image
         self.preprocessing_queue_mask = preprocessing_queue_mask
-        
+
         self.image_ordering = image_ordering
         self.is_column = is_column
-
-        
 
         self.image_batch_store = None
         self.mask_batch_store = None
@@ -420,18 +414,16 @@ class FlowGeneratorExperimental(Sequence):
 
         if index < self.validity_index - self.batch_size // self.mini_batch:
             self.validity_index = 0
-         
 
         if index == self.validity_index:
-       
             self.__read_batch(index * self.mini_batch)
             self.validity_index = (self.batch_size // self.mini_batch) + index
-       
+
         # slices new batch
         store_index = (self.batch_size // self.mini_batch) - (
             self.validity_index - index
         )
-      
+
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
 
@@ -448,7 +440,6 @@ class FlowGeneratorExperimental(Sequence):
         if self.image_ordering == ImageOrdering.CHANNEL_FIRST:
             batch_images = np.moveaxis(batch_images, -1, 1)
             batch_masks = np.moveaxis(batch_masks, -1, 1)
-
 
         return batch_images, batch_masks
 
