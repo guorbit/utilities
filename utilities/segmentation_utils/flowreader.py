@@ -297,8 +297,7 @@ class FlowGeneratorExperimental(Sequence):
         self.validity_index = 0
         self.shuffle_counter = 0
 
-        self.dataset_size = self.input_strategy.get_dataset_size(self.mini_batch)
-        tf.print("dataset_size: ", self.dataset_size)
+        self.__update_dataset_size()
 
         self.__shuffle_filenames()
 
@@ -344,6 +343,11 @@ class FlowGeneratorExperimental(Sequence):
         if self.batch_size % batch_size != 0:
             raise ValueError("The batch size must be divisible by the mini batch size")
         self.mini_batch = batch_size
+        self.__update_dataset_size()
+    
+    def __update_dataset_size(self) -> None:
+        self.dataset_size = self.input_strategy.get_dataset_size(self.mini_batch)
+
 
     def __read_batch(self, dataset_index: int) -> None:
         tf.print("dataset_index: ", dataset_index)
