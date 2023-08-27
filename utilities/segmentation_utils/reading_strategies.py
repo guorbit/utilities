@@ -155,19 +155,16 @@ class HSImageStrategy:
 
     def __get_channels(self) -> int:
         # Open the first image to determine the number of channels
-        first_image = self.package.open_image(
-            os.path.join(self.image_path, self.image_filenames[0])
-        )
-        return first_image.shape[-1] if len(first_image.shape) == 3 else 1
+        sample_image_path = os.path.join(self.image_path, self.image_filenames[0])
+        sample_image = self.package.imread(sample_image_path, self.package.IMREAD_UNCHANGED)
+        return sample_image.shape[2] if len(sample_image.shape) == 3 else 1
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         # Read a sample image to determine the number of bands
-        sample_image_path = os.path.join(self.image_path, self.image_filenames[0])
-        sample_image = self.package.imread(sample_image_path, self.package.IMREAD_UNCHANGED)
-        num_bands = sample_image.shape[2] if len(sample_image.shape) == 3 else 1
+
 
         # Initialize images array
-        images = np.zeros((batch_size, self.image_size[1], self.image_size[0], num_bands))
+        images = np.zeros((batch_size, self.image_size[1], self.image_size[0], self.bands))
 
         # Read images with OpenCV
         batch_filenames = self.image_filenames[

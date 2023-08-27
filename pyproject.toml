@@ -23,7 +23,7 @@ dependencies = [
     "toml >= 0.10.2",
     "tqdm >= 4.64.1",
     "pandas >= 1.5.1",
-    "opencv-python >= 4.7.0.68"
+    "opencv-python-headless >= 4.8.0.76"
 ]
 
 [tool.setuptools]
