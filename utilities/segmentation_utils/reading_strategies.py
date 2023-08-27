@@ -5,7 +5,9 @@ from typing import Any, Protocol
 
 import numpy as np
 import rasterio
+import spectral
 from PIL import Image
+from scipy.ndimage import zoom
 
 
 class IReader(Protocol):
@@ -138,7 +140,74 @@ class RGBImageStrategyMultiThread:
         self.image_filenames = self.image_filenames[shuffled_indices]
 
 
-class HyperspectralImageStrategy:
+class HSImageStrategy:
+    """
+    Reads hyperspectral imagedata using Spectral Python
+    """
+
+    def __init__(
+        self, image_path: str, image_size: tuple[int, int], package: Any = spectral
+    ) -> None:
+        self.image_path = image_path
+        self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
+        self.image_size = image_size
+        self.package = package
+        self.bands = self.__get_channels()
+
+    def __get_channels(self) -> int:
+        # Open the first image to determine the number of channels
+        first_image = self.package.open_image(
+            os.path.join(self.image_path, self.image_filenames[0])
+        )
+        return first_image.shape[-1] if len(first_image.shape) == 3 else 1
+
+    def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+        # read images with Spectral Python
+        batch_filenames = self.image_filenames[
+            dataset_index : dataset_index + batch_size
+        ]
+
+        images = np.zeros(
+            (batch_size, self.image_size[0], self.image_size[1], self.bands)
+        )
+        is_color = True
+        for i in range(batch_size):
+            image = self.package.open_image(
+                os.path.join(self.image_path, batch_filenames[i])
+            )
+            image_data = image.load()
+
+            # Calculate the zoom factor for resizing
+            zoom_factor = (
+                self.image_size[0] / image_data.shape[0],
+                self.image_size[1] / image_data.shape[1],
+                1,
+            )
+
+            # Resize the image using scipy's zoom function
+            resized_image = zoom(image_data, zoom_factor, order=1)
+
+            if len(resized_image.shape) == 2 and is_color:
+                images = np.zeros((batch_size, self.image_size[0], self.image_size[1]))
+                is_color = False
+            images[i, ...] = resized_image
+        return images
+    
+    def get_dataset_size(self, mini_batch) -> int:
+        dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
+        return dataset_size
+    
+    def get_image_size(self) -> tuple[int, int]:
+        return self.image_size
+    
+    def shuffle_filenames(self, seed: int) -> None:
+        state = np.random.RandomState(seed)
+        shuffled_indices = state.permutation(len(self.image_filenames))
+        shuffled_indices = shuffled_indices.astype(int)
+        self.image_filenames = self.image_filenames[shuffled_indices]
+
+
+class RasterImageStrategy:
     # read images with rasterio
     def __init__(
         self,
@@ -192,7 +261,7 @@ class HyperspectralImageStrategy:
         self.image_filenames = self.image_filenames[shuffled_indices]
 
 
-class HyperspectralImageStrategyMultiThread:
+class RasterImageStrategyMultiThread:
     # read images with rasterio
     def __init__(
         self,

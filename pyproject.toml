@@ -21,6 +21,7 @@ dependencies = [
     "Pillow >= 9.4.0",
     "tensorflow >= 2.10",
     "toml >= 0.10.2",
+    "spectral >= 0.23.1",
 ]
 
 [tool.setuptools]

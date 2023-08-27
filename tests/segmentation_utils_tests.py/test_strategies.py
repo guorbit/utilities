@@ -6,7 +6,7 @@ from PIL import Image
 from pytest import MonkeyPatch
 
 from utilities.segmentation_utils.reading_strategies import (
-    HyperspectralImageStrategy, HyperspectralImageStrategyMultiThread,
+    HSImageStrategy, RasterImageStrategy, RasterImageStrategyMultiThread,
     RGBImageStrategy)
 
 
@@ -42,6 +42,26 @@ class MockRasterio:
 
     def get_count(self):
         return self.call_count
+
+class SPyMock:
+    def __init__(self,n,size,bands) -> None:
+        self.n = n
+        self.size = size
+        self.bands = bands
+        self.call_count = 0
+
+    @property
+    def shape(self):
+        return (self.size[0],self.size[1],self.bands)
+
+    def open_image(self,*args,**kwargs):
+        return self
+    
+    def load(self,*args,**kwargs):
+        self.call_count += 1
+        return np.full((self.size[0],self.size[1],self.bands),self.call_count,np.uint8)
+
+
 
 
 @pytest.mark.development
@@ -132,7 +152,7 @@ def test_RGB_get_dataset_size() -> None:
 
 
 @pytest.mark.development
-def test_Hyperspectral_get_dataset_size() -> None:
+def test_raster_get_dataset_size() -> None:
     # checking if the calculation is done correctly
     patch = MonkeyPatch()
 
@@ -140,7 +160,7 @@ def test_Hyperspectral_get_dataset_size() -> None:
 
     patch.setattr(os, "listdir", lambda x: mock_filenames)
 
-    image_strategy = HyperspectralImageStrategy(
+    image_strategy = RasterImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
@@ -159,6 +179,54 @@ def test_Hyperspectral_get_dataset_size() -> None:
 
 
 @pytest.mark.development
+def test_raster_open():
+    patch = MonkeyPatch()
+    mock_filenames = ["a", "b", "c"]
+    patch.setattr(os, "listdir", lambda x: mock_filenames)
+
+    image_path = "tests/segmentation_utils_tests/test_strategies"
+
+    mock_data = {
+        "n": 3,
+        "size": (224, 224),
+        "bands": 3,
+        "dtypes": ["uint8"],
+    }
+    strategy = RasterImageStrategy(
+        image_path, (224, 224), package=MockRasterio(**mock_data)
+    )
+
+    read_images = strategy.read_batch(2, 0)
+
+    assert read_images.shape == (2, 224, 224, 3)
+
+
+
+
+@pytest.mark.development
+def test_raster_mt_open():
+    patch = MonkeyPatch()
+    mock_filenames = ["a", "b", "c"]
+    patch.setattr(os, "listdir", lambda x: mock_filenames)
+
+    image_path = "tests/segmentation_utils_tests/test_strategies"
+
+    mock_data = {
+        "n": 3,
+        "size": (224, 224),
+        "bands": 3,
+        "dtypes": ["uint8"],
+    }
+    strategy = RasterImageStrategyMultiThread(
+        image_path, (224, 224), package=MockRasterio(**mock_data)
+    )
+
+    read_images = strategy.read_batch(2, 0)
+
+    assert read_images.shape == (2, 224, 224, 3)
+
+
+@pytest.mark.development
 def test_hyperspectral_open():
     patch = MonkeyPatch()
     mock_filenames = ["a", "b", "c"]
@@ -170,37 +238,13 @@ def test_hyperspectral_open():
         "n": 3,
         "size": (224, 224),
         "bands": 3,
-        "dtypes": ["uint8"],
     }
-    strategy = HyperspectralImageStrategy(
-        image_path, (224, 224), package=MockRasterio(**mock_data)
+    strategy = HSImageStrategy(
+        image_path, (224, 224), package=SPyMock(**mock_data)
     )
 
     read_images = strategy.read_batch(2, 0)
-
-    assert read_images.shape == (2, 224, 224, 3)
-
-
-@pytest.mark.development
-def test_hyperspectral_mt_open():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-        "dtypes": ["uint8"],
-    }
-    strategy = HyperspectralImageStrategyMultiThread(
-        image_path, (224, 224), package=MockRasterio(**mock_data)
-    )
-
-    read_images = strategy.read_batch(2, 0)
-
+    
     assert read_images.shape == (2, 224, 224, 3)
 
 
@@ -320,14 +364,14 @@ def test_RGB_get_image_size():
 
 
 @pytest.mark.development
-def test_HyperSpectral_get_image_size():
+def test_raster_get_image_size():
     patch = MonkeyPatch()
 
     mock_filenames = ["a" for _ in range(20)]
 
     patch.setattr(os, "listdir", lambda x: mock_filenames)
 
-    image_strategy = HyperspectralImageStrategy(
+    image_strategy = RasterImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
@@ -338,14 +382,14 @@ def test_HyperSpectral_get_image_size():
 
 
 @pytest.mark.development
-def test_HyperSpectral_MT_get_image_size():
+def test_raster_MT_get_image_size():
     patch = MonkeyPatch()
 
     mock_filenames = ["a" for _ in range(20)]
 
     patch.setattr(os, "listdir", lambda x: mock_filenames)
 
-    image_strategy = HyperspectralImageStrategyMultiThread(
+    image_strategy = RasterImageStrategyMultiThread(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
@@ -353,6 +397,7 @@ def test_HyperSpectral_MT_get_image_size():
 
     result = image_strategy.get_image_size()
     assert result == (224, 224)
+
 
 @pytest.mark.development
 def test_RGB_shuffle():
@@ -384,21 +429,22 @@ def test_RGB_shuffle():
         image_strategy_1.image_filenames, image_strategy_2.image_filenames
     )
 
+
 @pytest.mark.development
-def test_Hyperspectral_shuffle():
+def test_raster_shuffle():
     patch = MonkeyPatch()
 
     mock_filenames = [str(i) for i in range(20)]
 
     patch.setattr(os, "listdir", lambda x: mock_filenames)
 
-    image_strategy_1 = HyperspectralImageStrategy(
+    image_strategy_1 = RasterImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
     )
 
-    image_strategy_2 = HyperspectralImageStrategy(
+    image_strategy_2 = RasterImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
@@ -414,21 +460,22 @@ def test_Hyperspectral_shuffle():
         image_strategy_1.image_filenames, image_strategy_2.image_filenames
     )
 
+
 @pytest.mark.development
-def test_Hyperspectral_mt_shuffle():
+def test_raster_mt_shuffle():
     patch = MonkeyPatch()
 
     mock_filenames = [str(i) for i in range(20)]
 
     patch.setattr(os, "listdir", lambda x: mock_filenames)
 
-    image_strategy_1 = HyperspectralImageStrategyMultiThread(
+    image_strategy_1 = RasterImageStrategyMultiThread(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
     )
 
-    image_strategy_2 = HyperspectralImageStrategy(
+    image_strategy_2 = RasterImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
@@ -444,15 +491,16 @@ def test_Hyperspectral_mt_shuffle():
         image_strategy_1.image_filenames, image_strategy_2.image_filenames
     )
 
+
 @pytest.mark.development
-def test_Hyperspectral_mt_image_in_order():
+def test_raster_mt_image_in_order():
     patch = MonkeyPatch()
 
     mock_filenames = [str(i) for i in range(20)]
 
     patch.setattr(os, "listdir", lambda x: mock_filenames)
     mock_package = MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
-    image_strategy = HyperspectralImageStrategyMultiThread(
+    image_strategy = RasterImageStrategyMultiThread(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=mock_package,
