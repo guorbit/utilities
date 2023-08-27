@@ -63,16 +63,15 @@ class CV2Mock:
     def resize(self, *args, **kwargs):
         img = args[0]
         size = args[1]
-        return np.full((size[0], size[1], self.bands), img[0,0,0], np.uint8)
+        return np.full((size[0], size[1], self.bands), img[0, 0, 0], np.uint8)
 
     def cvtColor(self, *args, **kwargs):
         img = args[0]
-        return np.full(
-            (self.size[0], self.size[1], self.bands), img[0,0,0], np.uint8
-        )
+        return np.full((self.size[0], self.size[1], self.bands), img[0, 0, 0], np.uint8)
 
     def get_count(self):
         return self.call_count
+
 
 @pytest.mark.development
 def test_read_batch_image_path() -> None:
@@ -214,6 +213,7 @@ def test_hsi_get_dataset_size() -> None:
     patch.undo()
     patch.undo()
 
+
 @pytest.mark.development
 def test_hsi_mt_get_dataset_size() -> None:
     # checking if the calculation is done correctly
@@ -306,6 +306,7 @@ def test_hsi_open():
 
     assert read_images.shape == (2, 224, 224, 3)
 
+
 @pytest.mark.development
 def test_hsi_mt_open():
     patch = MonkeyPatch()
@@ -319,7 +320,9 @@ def test_hsi_mt_open():
         "size": (224, 224),
         "bands": 3,
     }
-    strategy = HSImageStrategyMultiThread(image_path, (224, 224), package=CV2Mock(**mock_data))
+    strategy = HSImageStrategyMultiThread(
+        image_path, (224, 224), package=CV2Mock(**mock_data)
+    )
 
     read_images = strategy.read_batch(2, 0)
 
@@ -345,6 +348,7 @@ def test_hsi_get_channels():
 
     assert channels == 3
 
+
 @pytest.mark.development
 def test_hsi_mt_get_channels():
     patch = MonkeyPatch()
@@ -358,7 +362,9 @@ def test_hsi_mt_get_channels():
         "size": (224, 224),
         "bands": 3,
     }
-    strategy = HSImageStrategyMultiThread(image_path, (224, 224), package=CV2Mock(**mock_data))
+    strategy = HSImageStrategyMultiThread(
+        image_path, (224, 224), package=CV2Mock(**mock_data)
+    )
 
     channels = strategy._HSImageStrategyMultiThread__get_channels()
 
@@ -514,6 +520,7 @@ def test_hsi_get_image_size():
 
     result = image_strategy.get_image_size()
     assert result == (224, 224)
+
 
 @pytest.mark.development
 def test_hsi_mt_get_image_size():
@@ -700,6 +707,7 @@ def test_hsi_shuffle():
         image_strategy_1.image_filenames, image_strategy_2.image_filenames
     )
 
+
 @pytest.mark.development
 def test_hsi_mt_shuffle():
     patch = MonkeyPatch()
@@ -729,6 +737,7 @@ def test_hsi_mt_shuffle():
     assert np.array_equal(
         image_strategy_1.image_filenames, image_strategy_2.image_filenames
     )
+
 
 @pytest.mark.development
 def test_hsi_mt_image_in_order():
