@@ -45,7 +45,7 @@ jobs:
         pip install .[dev]
     - name: Test with pytest
       run: |
-        python -m pytest -v -m "not staging"
+        python -m pytest -v -m "development"
 
   devops:
     needs: test

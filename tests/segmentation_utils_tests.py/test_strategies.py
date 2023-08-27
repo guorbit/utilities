@@ -73,191 +73,163 @@ class CV2Mock:
         return self.call_count
 
 
-@pytest.mark.development
-def test_read_batch_image_path() -> None:
-    # checking if the file is being opened and read correctly
-    patch = MonkeyPatch()
+@pytest.fixture
+def rasterio_mock() -> MockRasterio:
+    return MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
 
-    mock_filenames = ["a", "b", "c"]
 
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
+@pytest.fixture
+def cv2_mock() -> CV2Mock:
+    return CV2Mock(n=3, size=(224, 224), bands=3)
 
-    patch.setattr(
+
+@pytest.fixture
+def directory_mock(monkeypatch):
+    mock_filenames = [str(i) for i in range(20)]
+    monkeypatch.setattr(os, "listdir", lambda x: mock_filenames)
+    return len(mock_filenames)
+
+
+@pytest.fixture
+def mock_image_open(monkeypatch):
+    monkeypatch.setattr(
         Image,
         "open",
         lambda _: Image.fromarray(np.ones((224, 224, 3)).astype(np.uint8)),
     )
 
-    image_strategy = RGBImageStrategy(
+
+@pytest.fixture
+def rgb_strategy(mock_image_open) -> RGBImageStrategy:
+    return RGBImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         image_resample=Image.Resampling.NEAREST,
     )
 
+
+@pytest.fixture
+def raster_strategy(rasterio_mock) -> RasterImageStrategy:
+    return RasterImageStrategy(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=rasterio_mock,
+    )
+
+
+@pytest.fixture
+def raster_mt_strategy(rasterio_mock) -> RasterImageStrategyMultiThread:
+    return RasterImageStrategyMultiThread(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=rasterio_mock,
+    )
+
+
+@pytest.fixture
+def hsi_strategy(cv2_mock) -> HSImageStrategy:
+    return HSImageStrategy(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=cv2_mock,
+    )
+
+
+@pytest.fixture
+def hsi_mt_strategy(cv2_mock) -> HSImageStrategyMultiThread:
+    return HSImageStrategyMultiThread(
+        image_path="tests/segmentation_utils_tests/test_strategies",
+        image_size=(224, 224),
+        package=cv2_mock,
+    )
+
+
+FIXTURE_LIST = [
+    "rgb_strategy",
+    "raster_strategy",
+    "raster_mt_strategy",
+    "hsi_strategy",
+    "hsi_mt_strategy",
+]
+
+FIXTURE_LIST_MT = [
+    "raster_mt_strategy",
+    "hsi_mt_strategy",
+]
+
+
+@pytest.fixture(params=FIXTURE_LIST)
+def image_strategy(request, directory_mock):
+    strategy = request.getfixturevalue(request.param)
+    return strategy
+
+
+@pytest.fixture(params=FIXTURE_LIST_MT)
+def mt_image_strategy(request, directory_mock):
+    strategy = request.getfixturevalue(request.param)
+    return strategy
+
+
+@pytest.fixture(params=FIXTURE_LIST)
+def fixture_factory(request, directory_mock):
+    def make_instance():
+        return request.getfixturevalue(request.param)
+
+    return make_instance
+
+
+@pytest.fixture(params=FIXTURE_LIST_MT)
+def mt_fixture_factory(request, directory_mock):
+    def make_instance():
+        return request.getfixturevalue(request.param)
+
+    return make_instance
+
+
+@pytest.mark.development
+def test_read_batch_image_path(image_strategy, mock_image_open) -> None:
+    # checking if the file is being opened and read correctly
+
+    strategy = image_strategy
+
     batch_size = 2
     dataset_index = 0
-    result = image_strategy.read_batch(batch_size, dataset_index)
+    result = strategy.read_batch(batch_size, dataset_index)
 
     assert result.shape == (2, 224, 224, 3)
-    patch.undo()
-    patch.undo()
 
 
 @pytest.mark.development
-def test_read_batch_returns_nparray() -> None:
+def test_read_batch_returns_nparray(image_strategy) -> None:
     # checking if the returned value is a numpy array
-
-    patch = MonkeyPatch()
-
-    patch.setattr(os, "listdir", lambda x: ["a", "b", "c"])
-
-    patch.setattr(
-        Image,
-        "open",
-        lambda _: Image.fromarray(np.ones((224, 224, 3)).astype(np.uint8)),
-    )
-
-    image_strategy = RGBImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        image_resample=Image.Resampling.NEAREST,
-    )
+    strategy = image_strategy
 
     batch_size = 2
     dataset_index = 0
 
-    result = image_strategy.read_batch(batch_size, dataset_index)
+    result = strategy.read_batch(batch_size, dataset_index)
     assert isinstance(result, np.ndarray)
     assert result.shape == (2, 224, 224, 3)
 
-    patch.undo()
-    patch.undo()
-
 
 @pytest.mark.development
-def test_RGB_get_dataset_size() -> None:
+def test_get_dataset_size(image_strategy, directory_mock) -> None:
     # checking if the calculation is done correctly
-    patch = MonkeyPatch()
 
-    mock_filenames = ["a", "b", "c"]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = RGBImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        image_resample=Image.Resampling.NEAREST,
-    )
-    dataset = len(mock_filenames)  # number of images in the specified path
+    strategy = image_strategy
+    dataset = directory_mock  # number of images in the specified path
     mini_batch = 2  # number of images we want in each batch
     expected_value = int(
         np.floor(dataset / float(mini_batch))
     )  # number of sets of images we expect
 
-    dataset_size = image_strategy.get_dataset_size(mini_batch)
+    dataset_size = strategy.get_dataset_size(mini_batch)
     assert dataset_size == expected_value
-    patch.undo()
-    patch.undo()
 
 
 @pytest.mark.development
-def test_raster_get_dataset_size() -> None:
-    # checking if the calculation is done correctly
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a", "b", "c"]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = RasterImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
-    )
-
-    dataset = len(mock_filenames)  # number of images in the specified path
-    mini_batch = 2  # number of images we want in each batch
-    expected_value = int(
-        np.floor(dataset / float(mini_batch))
-    )  # number of sets of images we expect
-
-    dataset_size = image_strategy.get_dataset_size(mini_batch)
-    assert dataset_size == expected_value
-    patch.undo()
-    patch.undo()
-
-
-@pytest.mark.development
-def test_hsi_get_dataset_size() -> None:
-    # checking if the calculation is done correctly
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a", "b", "c"]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = HSImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    dataset = len(mock_filenames)  # number of images in the specified path
-    mini_batch = 2  # number of images we want in each batch
-    expected_value = int(
-        np.floor(dataset / float(mini_batch))
-    )  # number of sets of images we expect
-
-    dataset_size = image_strategy.get_dataset_size(mini_batch)
-    assert dataset_size == expected_value
-    patch.undo()
-    patch.undo()
-
-
-@pytest.mark.development
-def test_hsi_mt_get_dataset_size() -> None:
-    # checking if the calculation is done correctly
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a", "b", "c"]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = HSImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    dataset = len(mock_filenames)  # number of images in the specified path
-    mini_batch = 2  # number of images we want in each batch
-    expected_value = int(
-        np.floor(dataset / float(mini_batch))
-    )  # number of sets of images we expect
-
-    dataset_size = image_strategy.get_dataset_size(mini_batch)
-    assert dataset_size == expected_value
-    patch.undo()
-    patch.undo()
-
-
-@pytest.mark.development
-def test_raster_open():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-        "dtypes": ["uint8"],
-    }
-    strategy = RasterImageStrategy(
-        image_path, (224, 224), package=MockRasterio(**mock_data)
-    )
+def test_open(image_strategy):
+    strategy = image_strategy
 
     read_images = strategy.read_batch(2, 0)
 
@@ -265,84 +237,8 @@ def test_raster_open():
 
 
 @pytest.mark.development
-def test_raster_mt_open():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-        "dtypes": ["uint8"],
-    }
-    strategy = RasterImageStrategyMultiThread(
-        image_path, (224, 224), package=MockRasterio(**mock_data)
-    )
-
-    read_images = strategy.read_batch(2, 0)
-
-    assert read_images.shape == (2, 224, 224, 3)
-
-
-@pytest.mark.development
-def test_hsi_open():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-    }
-    strategy = HSImageStrategy(image_path, (224, 224), package=CV2Mock(**mock_data))
-
-    read_images = strategy.read_batch(2, 0)
-
-    assert read_images.shape == (2, 224, 224, 3)
-
-
-@pytest.mark.development
-def test_hsi_mt_open():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-    }
-    strategy = HSImageStrategyMultiThread(
-        image_path, (224, 224), package=CV2Mock(**mock_data)
-    )
-
-    read_images = strategy.read_batch(2, 0)
-
-    assert read_images.shape == (2, 224, 224, 3)
-
-
-@pytest.mark.development
-def test_hsi_get_channels():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-    }
-    strategy = HSImageStrategy(image_path, (224, 224), package=CV2Mock(**mock_data))
+def test_hsi_get_channels(directory_mock, hsi_strategy):
+    strategy = hsi_strategy
 
     channels = strategy._HSImageStrategy__get_channels()
 
@@ -350,21 +246,8 @@ def test_hsi_get_channels():
 
 
 @pytest.mark.development
-def test_hsi_mt_get_channels():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-    }
-    strategy = HSImageStrategyMultiThread(
-        image_path, (224, 224), package=CV2Mock(**mock_data)
-    )
+def test_hsi_mt_get_channels(directory_mock, hsi_mt_strategy):
+    strategy = hsi_mt_strategy
 
     channels = strategy._HSImageStrategyMultiThread__get_channels()
 
@@ -372,28 +255,12 @@ def test_hsi_mt_get_channels():
 
 
 @pytest.mark.development
-def test_empty_batch():
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a", "b", "c"]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    patch.setattr(
-        Image,
-        "open",
-        lambda _: Image.fromarray(np.ones((224, 224, 3)).astype(np.uint8)),
-    )
-
-    image_strategy = RGBImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        image_resample=Image.Resampling.NEAREST,
-    )
+def test_empty_batch(image_strategy):
+    strategy = image_strategy
 
     batch_size = 0
     dataset_index = 0
-    result = image_strategy.read_batch(batch_size, dataset_index)
+    result = strategy.read_batch(batch_size, dataset_index)
 
     assert result.shape == (
         0,
@@ -401,363 +268,68 @@ def test_empty_batch():
         224,
         3,
     )  # 0 indicates there are no images in the batch
-    patch.undo()
-    patch.undo()
 
 
 @pytest.mark.development
-def test_out_of_bounds_index():
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a", "b", "c"]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    patch.setattr(
-        Image,
-        "open",
-        lambda _: Image.fromarray(np.ones((224, 224, 3)).astype(np.uint8)),
-    )
-
-    image_strategy = RGBImageStrategy(
+def test_out_of_bounds_index(image_strategy):
+    strategy = RGBImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         image_resample=Image.Resampling.NEAREST,
     )
 
     batch_size = 2  # not an empty batch
-    dataset_index = len(image_strategy.image_filenames)  # out of bounds index
+    dataset_index = len(strategy.image_filenames)  # out of bounds index
 
-    try:
-        image_strategy.read_batch(batch_size, dataset_index)
-        assert True
-
-    except IndexError:
-        pass
-    patch.undo()
-    patch.undo()
+    with pytest.raises(IndexError):
+        strategy.read_batch(batch_size, dataset_index)
 
 
 @pytest.mark.development
-def test_batch_slicing():
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a" for _ in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    patch.setattr(
-        Image,
-        "open",
-        lambda _: Image.fromarray(np.ones((224, 224, 3)).astype(np.uint8)),
-    )
-
-    image_strategy = RGBImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        image_resample=Image.Resampling.NEAREST,
-    )
+def test_batch_slicing(image_strategy):
+    strategy = image_strategy
 
     batch_size = 10
     dataset_index = 2
-    result = image_strategy.read_batch(batch_size, dataset_index)
+    result = strategy.read_batch(batch_size, dataset_index)
     assert (
         result.shape[0] == batch_size
     )  # compare the size of returned data with batch_size
-    patch.undo()
-    patch.undo()
 
 
 @pytest.mark.development
-def test_RGB_get_image_size():
-    patch = MonkeyPatch()
+def test_get_image_size(image_strategy):
+    strategy = image_strategy
 
-    mock_filenames = ["a" for _ in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = RGBImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        image_resample=Image.Resampling.NEAREST,
-    )
-
-    result = image_strategy.get_image_size()
+    result = strategy.get_image_size()
     assert result == (224, 224)
 
 
 @pytest.mark.development
-def test_raster_get_image_size():
-    patch = MonkeyPatch()
+def test_shuffle(fixture_factory):
+    strategy_1 = fixture_factory()
 
-    mock_filenames = ["a" for _ in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = RasterImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
-    )
-
-    result = image_strategy.get_image_size()
-    assert result == (224, 224)
-
-
-@pytest.mark.development
-def test_hsi_get_image_size():
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a" for _ in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = HSImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    result = image_strategy.get_image_size()
-    assert result == (224, 224)
-
-
-@pytest.mark.development
-def test_hsi_mt_get_image_size():
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a" for _ in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = HSImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    result = image_strategy.get_image_size()
-    assert result == (224, 224)
-
-
-@pytest.mark.development
-def test_raster_mt_get_image_size():
-    patch = MonkeyPatch()
-
-    mock_filenames = ["a" for _ in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy = RasterImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
-    )
-
-    result = image_strategy.get_image_size()
-    assert result == (224, 224)
-
-
-@pytest.mark.development
-def test_rgb_shuffle():
-    patch = MonkeyPatch()
-
-    mock_filenames = [str(i) for i in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy_1 = RGBImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        image_resample=Image.Resampling.NEAREST,
-    )
-
-    image_strategy_2 = RGBImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        image_resample=Image.Resampling.NEAREST,
-    )
+    strategy_2 = fixture_factory()
 
     n = 100
 
     for i in range(n):
-        image_strategy_1.shuffle_filenames(i)
-        image_strategy_2.shuffle_filenames(i)
+        strategy_1.shuffle_filenames(i)
+        strategy_2.shuffle_filenames(i)
 
-    assert np.array_equal(
-        image_strategy_1.image_filenames, image_strategy_2.image_filenames
-    )
-
-
-@pytest.mark.development
-def test_raster_shuffle():
-    patch = MonkeyPatch()
-
-    mock_filenames = [str(i) for i in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy_1 = RasterImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
-    )
-
-    image_strategy_2 = RasterImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
-    )
-
-    n = 100
-
-    for i in range(n):
-        image_strategy_1.shuffle_filenames(i)
-        image_strategy_2.shuffle_filenames(i)
-
-    assert np.array_equal(
-        image_strategy_1.image_filenames, image_strategy_2.image_filenames
-    )
+    assert np.array_equal(strategy_1.image_filenames, strategy_2.image_filenames)
+    assert type(strategy_1) == type(strategy_2)
 
 
 @pytest.mark.development
-def test_raster_mt_shuffle():
-    patch = MonkeyPatch()
-
-    mock_filenames = [str(i) for i in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy_1 = RasterImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
-    )
-
-    image_strategy_2 = RasterImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"]),
-    )
-
-    n = 100
-
-    for i in range(n):
-        image_strategy_1.shuffle_filenames(i)
-        image_strategy_2.shuffle_filenames(i)
-
-    assert np.array_equal(
-        image_strategy_1.image_filenames, image_strategy_2.image_filenames
-    )
-
-
-@pytest.mark.development
-def test_raster_mt_image_in_order():
-    patch = MonkeyPatch()
-
-    mock_filenames = [str(i) for i in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-    mock_package = MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
-    image_strategy = RasterImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=mock_package,
-    )
+def test_mt_image_in_order(mt_image_strategy):
+    strategy = mt_image_strategy
 
     batch_size = 10
 
-    call_count = mock_package.get_count()
+    call_count = strategy.package.get_count()
 
-    result = image_strategy.read_batch(batch_size, 0)
-
-    for i in range(call_count, call_count + batch_size):
-        assert np.array_equal(
-            result[i - call_count, :, :, :], np.full((224, 224, 3), i + 1)
-        )
-
-
-@pytest.mark.development
-def test_hsi_shuffle():
-    patch = MonkeyPatch()
-
-    mock_filenames = [str(i) for i in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy_1 = HSImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    image_strategy_2 = HSImageStrategy(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    n = 100
-
-    for i in range(n):
-        image_strategy_1.shuffle_filenames(i)
-        image_strategy_2.shuffle_filenames(i)
-
-    assert np.array_equal(
-        image_strategy_1.image_filenames, image_strategy_2.image_filenames
-    )
-
-
-@pytest.mark.development
-def test_hsi_mt_shuffle():
-    patch = MonkeyPatch()
-
-    mock_filenames = [str(i) for i in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_strategy_1 = HSImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    image_strategy_2 = HSImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=CV2Mock(n=3, size=(224, 224), bands=3),
-    )
-
-    n = 100
-
-    for i in range(n):
-        image_strategy_1.shuffle_filenames(i)
-        image_strategy_2.shuffle_filenames(i)
-
-    assert np.array_equal(
-        image_strategy_1.image_filenames, image_strategy_2.image_filenames
-    )
-
-
-@pytest.mark.development
-def test_hsi_mt_image_in_order():
-    patch = MonkeyPatch()
-
-    mock_filenames = [str(i) for i in range(20)]
-
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-    mock_package = CV2Mock(n=3, size=(224, 224), bands=3)
-    image_strategy = HSImageStrategyMultiThread(
-        image_path="tests/segmentation_utils_tests/test_strategies",
-        image_size=(224, 224),
-        package=mock_package,
-    )
-
-    batch_size = 10
-
-    call_count = mock_package.get_count()
-
-    result = image_strategy.read_batch(batch_size, 0)
+    result = strategy.read_batch(batch_size, 0)
 
     for i in range(call_count, call_count + batch_size):
         assert np.array_equal(

@@ -295,7 +295,7 @@ def test_read_batch_get_item_expand_dim_fail() -> None:
 
         batch = generator[0]
 
-
+@pytest.mark.development
 def test_raises_error_not_compatible_shape() -> None:
     with pytest.raises(ValueError) as exc_info:
         patch = MonkeyPatch()

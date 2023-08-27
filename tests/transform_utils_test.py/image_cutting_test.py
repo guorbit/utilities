@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 import rasterio
 from PIL import Image
 from pytest import MonkeyPatch
@@ -7,6 +8,7 @@ from utilities.transform_utils.image_cutting import (cut_ims_in_directory,
                                                      image_cut, image_stich)
 
 
+@pytest.mark.development
 def test_image_cut() -> None:
     img = np.zeros((512, 512, 3))
     img[-1, -1, 0] = 1
@@ -29,6 +31,7 @@ def test_image_cut() -> None:
 #         assert True
 
 
+@pytest.mark.development
 def test_image_cut_incorrect_shape_too_many() -> None:
     # does not pass
     try:
@@ -40,6 +43,7 @@ def test_image_cut_incorrect_shape_too_many() -> None:
         assert True
 
 
+@pytest.mark.development
 def test_image_cut_incorrect_band_specified() -> None:
     # passes however the function doesn't rasie a value error
     # when the bands do not match
@@ -52,6 +56,7 @@ def test_image_cut_incorrect_band_specified() -> None:
         assert True
 
 
+@pytest.mark.development
 def test_image_cut_slack_cut() -> None:
     img = np.zeros((513, 513, 3))
     img[-2, -2, 0] = 1
@@ -62,6 +67,7 @@ def test_image_cut_slack_cut() -> None:
     assert cut_ims[-1, -1, -1, 0] == 1
 
 
+@pytest.mark.development
 def test_image_cut_slack_cut_exact() -> None:
     img = np.zeros((512, 512, 3))
     img[-2, -2, 0] = 1
@@ -72,6 +78,7 @@ def test_image_cut_slack_cut_exact() -> None:
     assert cut_ims[-1, -2, -2, 0] == 1
 
 
+@pytest.mark.development
 def test_image_cut_pad() -> None:
     img = np.zeros((511, 511, 3))
     img[-2, -2, 0] = 1
@@ -82,6 +89,7 @@ def test_image_cut_pad() -> None:
     assert cut_ims[-1, -3, -3, 0] == 1
 
 
+@pytest.mark.development
 def test_image_cut_pad_exact() -> None:
     img = np.zeros((512, 512, 3))
     img[-2, -2, 0] = 1
@@ -92,6 +100,7 @@ def test_image_cut_pad_exact() -> None:
     assert cut_ims[-1, -2, -2, 0] == 1
 
 
+@pytest.mark.development
 def test_image_cut_incorrect_band() -> None:
     try:
         img = np.zeros((512, 512))
@@ -102,6 +111,7 @@ def test_image_cut_incorrect_band() -> None:
         assert True
 
 
+@pytest.mark.development
 def test_image_cut_can_add_dimension() -> None:
     img = np.zeros((512, 512))
     img[-1, -1] = 1
@@ -112,6 +122,7 @@ def test_image_cut_can_add_dimension() -> None:
     assert cut_ims[-1, -1, -1, 0] == 1
 
 
+@pytest.mark.development
 def test_image_stich() -> None:
     img1 = np.zeros((256, 256, 3), dtype=np.uint8)
     img2 = np.zeros((256, 256, 3), dtype=np.uint8)
@@ -131,6 +142,7 @@ def test_image_stich() -> None:
     assert stiched_img[-1, -1, 0] == 9
 
 
+@pytest.mark.development
 def test_cut_ims_in_directory(mocker) -> None:
     patch = MonkeyPatch()
 
