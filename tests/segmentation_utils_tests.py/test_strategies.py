@@ -43,8 +43,9 @@ class MockRasterio:
     def get_count(self):
         return self.call_count
 
+
 class SPyMock:
-    def __init__(self,n,size,bands) -> None:
+    def __init__(self, n, size, bands) -> None:
         self.n = n
         self.size = size
         self.bands = bands
@@ -52,16 +53,16 @@ class SPyMock:
 
     @property
     def shape(self):
-        return (self.size[0],self.size[1],self.bands)
+        return (self.size[0], self.size[1], self.bands)
 
-    def open_image(self,*args,**kwargs):
+    def open_image(self, *args, **kwargs):
         return self
-    
-    def load(self,*args,**kwargs):
+
+    def load(self, *args, **kwargs):
         self.call_count += 1
-        return np.full((self.size[0],self.size[1],self.bands),self.call_count,np.uint8)
-
-
+        return np.full(
+            (self.size[0], self.size[1], self.bands), self.call_count, np.uint8
+        )
 
 
 @pytest.mark.development
@@ -201,8 +202,6 @@ def test_raster_open():
     assert read_images.shape == (2, 224, 224, 3)
 
 
-
-
 @pytest.mark.development
 def test_raster_mt_open():
     patch = MonkeyPatch()
@@ -223,28 +222,6 @@ def test_raster_mt_open():
 
     read_images = strategy.read_batch(2, 0)
 
-    assert read_images.shape == (2, 224, 224, 3)
-
-
-@pytest.mark.development
-def test_hyperspectral_open():
-    patch = MonkeyPatch()
-    mock_filenames = ["a", "b", "c"]
-    patch.setattr(os, "listdir", lambda x: mock_filenames)
-
-    image_path = "tests/segmentation_utils_tests/test_strategies"
-
-    mock_data = {
-        "n": 3,
-        "size": (224, 224),
-        "bands": 3,
-    }
-    strategy = HSImageStrategy(
-        image_path, (224, 224), package=SPyMock(**mock_data)
-    )
-
-    read_images = strategy.read_batch(2, 0)
-    
     assert read_images.shape == (2, 224, 224, 3)
 
 

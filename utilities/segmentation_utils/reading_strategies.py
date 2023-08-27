@@ -3,11 +3,10 @@ from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Protocol
 
+import cv2
 import numpy as np
 import rasterio
-import spectral
 from PIL import Image
-from scipy.ndimage import zoom
 
 
 class IReader(Protocol):
@@ -142,11 +141,11 @@ class RGBImageStrategyMultiThread:
 
 class HSImageStrategy:
     """
-    Reads hyperspectral imagedata using Spectral Python
+    Reads hyperspectral optimized images with OpenCV
     """
 
     def __init__(
-        self, image_path: str, image_size: tuple[int, int], package: Any = spectral
+        self, image_path: str, image_size: tuple[int, int], package: Any = cv2
     ) -> None:
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
@@ -162,35 +161,32 @@ class HSImageStrategy:
         return first_image.shape[-1] if len(first_image.shape) == 3 else 1
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
-        # read images with Spectral Python
+        # Read a sample image to determine the number of bands
+        sample_image_path = os.path.join(self.image_path, self.image_filenames[0])
+        sample_image = self.package.imread(sample_image_path, self.package.IMREAD_UNCHANGED)
+        num_bands = sample_image.shape[2] if len(sample_image.shape) == 3 else 1
+
+        # Initialize images array
+        images = np.zeros((batch_size, self.image_size[1], self.image_size[0], num_bands))
+
+        # Read images with OpenCV
         batch_filenames = self.image_filenames[
             dataset_index : dataset_index + batch_size
         ]
 
-        images = np.zeros(
-            (batch_size, self.image_size[0], self.image_size[1], self.bands)
-        )
-        is_color = True
         for i in range(batch_size):
-            image = self.package.open_image(
-                os.path.join(self.image_path, batch_filenames[i])
-            )
-            image_data = image.load()
+            image_path = os.path.join(self.image_path, batch_filenames[i])
+            image = self.package.imread(image_path, self.package.IMREAD_UNCHANGED)
+            
+            # Resize the image
+            image = self.package.resize(image, self.image_size)
+            
+            # If the image is color, convert BGR to RGB
+            if len(image.shape) == 3 and image.shape[2] == 3:
+                image = self.package.cvtColor(image, self.package.COLOR_BGR2RGB)
+            
+            images[i, ...] = image
 
-            # Calculate the zoom factor for resizing
-            zoom_factor = (
-                self.image_size[0] / image_data.shape[0],
-                self.image_size[1] / image_data.shape[1],
-                1,
-            )
-
-            # Resize the image using scipy's zoom function
-            resized_image = zoom(image_data, zoom_factor, order=1)
-
-            if len(resized_image.shape) == 2 and is_color:
-                images = np.zeros((batch_size, self.image_size[0], self.image_size[1]))
-                is_color = False
-            images[i, ...] = resized_image
         return images
     
     def get_dataset_size(self, mini_batch) -> int:
