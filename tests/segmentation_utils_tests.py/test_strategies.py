@@ -73,18 +73,37 @@ class CV2Mock:
         return self.call_count
 
 
+####################################################################################################
+#                                     Package Mocks                                                #
+####################################################################################################
+
+
 @pytest.fixture
 def rasterio_mock() -> MockRasterio:
+    """
+    Creates a mock of the rasterio package
+    """
     return MockRasterio(n=3, size=(224, 224), bands=3, dtypes=["uint8"])
 
 
 @pytest.fixture
 def cv2_mock() -> CV2Mock:
+    """
+    Creates a mock of the cv2 package
+    """
     return CV2Mock(n=3, size=(224, 224), bands=3)
+
+
+####################################################################################################
+#                                        OS mocks                                                  #
+####################################################################################################
 
 
 @pytest.fixture
 def directory_mock(monkeypatch):
+    """
+    Mocks the os.listdir function to return a list of filenames
+    """
     mock_filenames = [str(i) for i in range(20)]
     monkeypatch.setattr(os, "listdir", lambda x: mock_filenames)
     return len(mock_filenames)
@@ -92,6 +111,9 @@ def directory_mock(monkeypatch):
 
 @pytest.fixture
 def mock_image_open(monkeypatch):
+    """
+    Mocks the Image.open function to return a numpy array
+    """
     monkeypatch.setattr(
         Image,
         "open",
@@ -99,8 +121,18 @@ def mock_image_open(monkeypatch):
     )
 
 
+####################################################################################################
+#                                    Strategy fixtures                                             #
+####################################################################################################
+
+
 @pytest.fixture
 def rgb_strategy(mock_image_open) -> RGBImageStrategy:
+    """
+    Creates a RGBImageStrategy instance
+
+    Relies on the mock_image_open fixture to mock the Image.open function
+    """
     return RGBImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
@@ -110,6 +142,11 @@ def rgb_strategy(mock_image_open) -> RGBImageStrategy:
 
 @pytest.fixture
 def raster_strategy(rasterio_mock) -> RasterImageStrategy:
+    """
+    Creates a RasterImageStrategy instance
+
+    Relies on the rasterio_mock fixture to mock the rasterio package
+    """
     return RasterImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
@@ -119,6 +156,11 @@ def raster_strategy(rasterio_mock) -> RasterImageStrategy:
 
 @pytest.fixture
 def raster_mt_strategy(rasterio_mock) -> RasterImageStrategyMultiThread:
+    """
+    Creates a RasterImageStrategyMultiThread instance
+
+    Relies on the rasterio_mock fixture to mock the rasterio package
+    """
     return RasterImageStrategyMultiThread(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
@@ -128,6 +170,11 @@ def raster_mt_strategy(rasterio_mock) -> RasterImageStrategyMultiThread:
 
 @pytest.fixture
 def hsi_strategy(cv2_mock) -> HSImageStrategy:
+    """
+    Creates a HSImageStrategy instance
+
+    Relies on the cv2_mock fixture to mock the cv2 package
+    """
     return HSImageStrategy(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
@@ -137,12 +184,21 @@ def hsi_strategy(cv2_mock) -> HSImageStrategy:
 
 @pytest.fixture
 def hsi_mt_strategy(cv2_mock) -> HSImageStrategyMultiThread:
+    """
+    Creates a HSImageStrategyMultiThread instance
+
+    Relies on the cv2_mock fixture to mock the cv2 package
+    """
     return HSImageStrategyMultiThread(
         image_path="tests/segmentation_utils_tests/test_strategies",
         image_size=(224, 224),
         package=cv2_mock,
     )
 
+
+####################################################################################################
+#                                 Test Generators                                                  #
+####################################################################################################
 
 FIXTURE_LIST = [
     "rgb_strategy",
@@ -160,18 +216,29 @@ FIXTURE_LIST_MT = [
 
 @pytest.fixture(params=FIXTURE_LIST)
 def image_strategy(request, directory_mock):
+    """
+    Generates a strategy instance for each strategy type
+    """
     strategy = request.getfixturevalue(request.param)
     return strategy
 
 
 @pytest.fixture(params=FIXTURE_LIST_MT)
 def mt_image_strategy(request, directory_mock):
+    """
+    Generates a strategy instance for each multi threaded strategy type
+    """
     strategy = request.getfixturevalue(request.param)
     return strategy
 
 
 @pytest.fixture(params=FIXTURE_LIST)
 def fixture_factory(request, directory_mock):
+    """
+    Generates a strategy instance for each strategy type
+    
+    Can be used to generate multiple instances of the same strategy type
+    """
     def make_instance():
         return request.getfixturevalue(request.param)
 
@@ -180,11 +247,20 @@ def fixture_factory(request, directory_mock):
 
 @pytest.fixture(params=FIXTURE_LIST_MT)
 def mt_fixture_factory(request, directory_mock):
+    """
+    Generates a strategy instance for each multi threaded strategy type
+
+    Can be used to generate multiple instances of the same strategy type
+    """
     def make_instance():
         return request.getfixturevalue(request.param)
 
     return make_instance
 
+
+####################################################################################################
+#                                 Test Functions                                                   #
+####################################################################################################
 
 @pytest.mark.development
 def test_read_batch_image_path(image_strategy, mock_image_open) -> None:
