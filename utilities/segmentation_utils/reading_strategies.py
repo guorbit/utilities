@@ -24,6 +24,10 @@ class IReader(Protocol):
 
 
 class RGBImageStrategy:
+    """
+    Strategy optimized for reading RGB images powered by backend PIL.
+    """
+
     def __init__(
         self,
         image_path: str,
@@ -71,6 +75,11 @@ class RGBImageStrategy:
 
 
 class RGBImageStrategyMultiThread:
+    """
+    Strategy optimized for reading RGB images powered by backend PIL.
+    Multi threaded version.
+    """
+
     def __init__(
         self,
         image_path: str,
@@ -141,7 +150,7 @@ class RGBImageStrategyMultiThread:
 
 class HSImageStrategy:
     """
-    Reads hyperspectral optimized images with OpenCV
+    Strategy optimized for reading hyperspectral images powered by backend OpenCV
     """
 
     def __init__(
@@ -156,15 +165,18 @@ class HSImageStrategy:
     def __get_channels(self) -> int:
         # Open the first image to determine the number of channels
         sample_image_path = os.path.join(self.image_path, self.image_filenames[0])
-        sample_image = self.package.imread(sample_image_path, self.package.IMREAD_UNCHANGED)
+        sample_image = self.package.imread(
+            sample_image_path, self.package.IMREAD_UNCHANGED
+        )
         return sample_image.shape[2] if len(sample_image.shape) == 3 else 1
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         # Read a sample image to determine the number of bands
 
-
         # Initialize images array
-        images = np.zeros((batch_size, self.image_size[1], self.image_size[0], self.bands))
+        images = np.zeros(
+            (batch_size, self.image_size[1], self.image_size[0], self.bands)
+        )
 
         # Read images with OpenCV
         batch_filenames = self.image_filenames[
@@ -174,25 +186,99 @@ class HSImageStrategy:
         for i in range(batch_size):
             image_path = os.path.join(self.image_path, batch_filenames[i])
             image = self.package.imread(image_path, self.package.IMREAD_UNCHANGED)
-            
+
             # Resize the image
             image = self.package.resize(image, self.image_size)
-            
+
             # If the image is color, convert BGR to RGB
             if len(image.shape) == 3 and image.shape[2] == 3:
                 image = self.package.cvtColor(image, self.package.COLOR_BGR2RGB)
-            
+
             images[i, ...] = image
 
         return images
-    
+
     def get_dataset_size(self, mini_batch) -> int:
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
-    
+
     def get_image_size(self) -> tuple[int, int]:
         return self.image_size
-    
+
+    def shuffle_filenames(self, seed: int) -> None:
+        state = np.random.RandomState(seed)
+        shuffled_indices = state.permutation(len(self.image_filenames))
+        shuffled_indices = shuffled_indices.astype(int)
+        self.image_filenames = self.image_filenames[shuffled_indices]
+
+
+class HSImageStrategyMultiThread:
+    def __init__(
+        self,
+        image_path: str,
+        image_size: tuple[int, int],
+        package: Any = cv2,
+        max_workers: int = 8,
+    ) -> None:
+        self.image_path = image_path
+        self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
+        self.image_size = image_size
+        self.package = package
+        self.bands = self.__get_channels()
+        self.max_workers = max_workers
+
+    def __get_channels(self) -> int:
+        # Open the first image to determine the number of channels
+        sample_image_path = os.path.join(self.image_path, self.image_filenames[0])
+        sample_image = self.package.imread(
+            sample_image_path, self.package.IMREAD_UNCHANGED
+        )
+        return sample_image.shape[2] if len(sample_image.shape) == 3 else 1
+
+    def __read_single_image(
+        self, filename: str, package: Any, image_size: tuple[int, int, int]
+    ) -> np.ndarray:
+        image = package.imread(filename, package.IMREAD_UNCHANGED)
+        image = package.resize(image, image_size)
+        if len(image.shape) == 3 and image.shape[2] == 3:
+            image = package.cvtColor(image, package.COLOR_BGR2RGB)
+        return image
+
+    def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+        # Initialize images array
+        images = np.zeros(
+            (batch_size, self.image_size[1], self.image_size[0], self.bands)
+        )
+
+        # Read images with OpenCV
+        batch_filenames = self.image_filenames[
+            dataset_index : dataset_index + batch_size
+        ]
+
+        image_paths = [
+            os.path.join(self.image_path, batch_filenames[i]) for i in range(batch_size)
+        ]
+
+        with ThreadPoolExecutor() as executor:
+            results = executor.map(
+                self.__read_single_image,
+                image_paths,
+                [self.package] * batch_size,
+                [self.image_size] * batch_size,
+            )
+
+        for i, image in enumerate(results):
+            images[i, ...] = image
+
+        return images
+
+    def get_dataset_size(self, mini_batch) -> int:
+        dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
+        return dataset_size
+
+    def get_image_size(self) -> tuple[int, int]:
+        return self.image_size
+
     def shuffle_filenames(self, seed: int) -> None:
         state = np.random.RandomState(seed)
         shuffled_indices = state.permutation(len(self.image_filenames))
@@ -201,6 +287,10 @@ class HSImageStrategy:
 
 
 class RasterImageStrategy:
+    """
+    Strategy optimized for reading raster images powered by backend rasterio.
+    """
+
     # read images with rasterio
     def __init__(
         self,
@@ -255,6 +345,11 @@ class RasterImageStrategy:
 
 
 class RasterImageStrategyMultiThread:
+    """
+    Strategy optimized for reading raster images powered by backend rasterio.
+    Multi threaded version.
+    """
+
     # read images with rasterio
     def __init__(
         self,
