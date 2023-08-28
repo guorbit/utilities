@@ -7,15 +7,14 @@ import os
 from typing import Optional
 
 import numpy as np
-import pandas as pd
+import tensorflow as tf
 from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
-from PIL import Image
-from tqdm import tqdm
 
 from utilities.segmentation_utils import ImagePreprocessor
 from utilities.segmentation_utils.constants import ImageOrdering
 from utilities.segmentation_utils.ImagePreprocessor import IPreprocessor
+from utilities.segmentation_utils.reading_strategies import IReader
 
 
 class FlowGenerator:
@@ -253,17 +252,14 @@ class FlowGeneratorExperimental(Sequence):
     
     Raises
     ------
-    :ValueError: if the names of the images and masks do not match
     :ValueError: if the output size is not a tuple of length 2
     :ValueError: if the output size is not a square matrix or a column vector
     """
 
     def __init__(
         self,
-        image_path: str,
-        mask_path: str,
-        image_size: tuple[int, int],
-        output_size: tuple[int, int],
+        input_strategy: IReader,
+        output_strategy: IReader,
         channel_mask: list[bool],
         num_classes: int,
         shuffle: bool = True,
@@ -273,24 +269,15 @@ class FlowGeneratorExperimental(Sequence):
         preprocessing_seed: Optional[int] = None,
         preprocessing_queue_image: IPreprocessor = ImagePreprocessor.generate_image_queue(),
         preprocessing_queue_mask: IPreprocessor = ImagePreprocessor.generate_mask_queue(),
-        read_weights: bool = False,
-        weights_path: Optional[str] = None,
-        shuffle_counter: int = 0,
         image_ordering: ImageOrdering = ImageOrdering.CHANNEL_LAST,
+        is_column: bool = False,
     ):
-        if len(output_size) != 2:
-            raise ValueError("The output size has to be a tuple of length 2")
-        if output_size[1] != 1 and output_size[0] != output_size[1]:
-            raise ValueError(
-                "The output size has to be a square matrix or a column vector"
-            )
-
-        self.image_path = image_path
-        self.mask_path = mask_path
+        self.input_strategy = input_strategy
+        self.output_strategy = output_strategy
         self.batch_size = batch_size
         self.mini_batch = batch_size
-        self.image_size = image_size
-        self.output_size = output_size
+        self.image_size = input_strategy.get_image_size()
+        self.output_size = output_strategy.get_image_size()
         self.channel_mask = np.array(channel_mask)
         self.n_channels = np.sum(channel_mask)
         self.num_classes = num_classes
@@ -298,58 +285,28 @@ class FlowGeneratorExperimental(Sequence):
         self.seed = seed
         self.preprocessing_enabled = preprocessing_enabled
         self.preprocessing_seed = preprocessing_seed
-        self.read_weights = read_weights
-        self.weights_path = weights_path
+
         self.preprocessing_queue_image = preprocessing_queue_image
         self.preprocessing_queue_mask = preprocessing_queue_mask
-        self.shuffle_counter = shuffle_counter
+
         self.image_ordering = image_ordering
-
-        self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
-        self.mask_filenames = np.array(sorted(os.listdir(self.mask_path)))
-
-        # should be moved out as a strategy
-        if self.read_weights:
-            weights_df = pd.read_csv(self.weights_path, header=None)
-            weights_np = weights_df.to_numpy()
-            print(weights_np.shape)
-            # sort the numpy array by the first column
-            weights_np = weights_np[weights_np[:, 0].argsort()]
-
-            print(weights_np)
-            self.weights = weights_np[:, 1:].astype(np.float64)
-            weight_names = weights_np[:, 0]
-            for mask, weight_name in zip(self.mask_filenames, weight_names):
-                if mask != weight_name:
-                    raise ValueError("The mask and weight directories do not match")
-
-        self.linked_data = [self.image_filenames, self.mask_filenames]
-        if self.read_weights:
-            self.linked_data.append(self.weights)
-
-        self.__shuffle_filenames()
-        self.dataset_size = self.__len__()
-
-        print("Validating dataset...")
-        for i_name, m_name in tqdm(zip(self.image_filenames, self.mask_filenames)):
-            if i_name != m_name:
-                raise ValueError("The image and mask directories do not match")
+        self.is_column = is_column
 
         self.image_batch_store = None
         self.mask_batch_store = None
         self.validity_index = 0
+        self.shuffle_counter = 0
 
-        if self.output_size[1] == 1:
-            # only enters if the output is a column vector
-            # such no need to define it otherwise
-            dimension = math.sqrt(self.output_size[0])
-            self.output_reshape = (int(dimension), int(dimension))
-            self.column_vector = True
-        else:
-            self.output_reshape = self.output_size
-            self.column_vector = False
+        self.__update_dataset_size()
 
-        print("Reading images from: ", self.image_path)
+        self.__shuffle_filenames()
+
+        if len(self.output_size) != 2:
+            raise ValueError("The output size has to be a tuple of length 2")
+        if self.output_size[1] != 1 and self.output_size[0] != self.output_size[1]:
+            raise ValueError(
+                "The output size has to be a square matrix or a column vector"
+            )
 
     def set_preprocessing_pipeline(
         self,
@@ -386,87 +343,76 @@ class FlowGeneratorExperimental(Sequence):
         if self.batch_size % batch_size != 0:
             raise ValueError("The batch size must be divisible by the mini batch size")
         self.mini_batch = batch_size
+        self.__update_dataset_size()
 
-    def __read_batch(self, start: int, end: int) -> None:
-        # read image batch
-        batch_image_filenames = self.image_filenames[start:end]
-        batch_mask_filenames = self.mask_filenames[start:end]
-        for image, mask in zip(batch_image_filenames, batch_mask_filenames):
-            if image != mask:
-                raise ValueError("The image and mask directories do not match")
+    def __update_dataset_size(self) -> None:
+        self.dataset_size = self.input_strategy.get_dataset_size(self.mini_batch)
+
+    def __read_batch(self, dataset_index: int) -> None:
+        #!adjust the batch size as it is passed to the function
+        # calculates remaining images in a dataset and scales it down by multiplying with minibatch
+        partial_dataset = self.dataset_size * self.mini_batch - dataset_index
+
+        # compare and choose the smaller value, to avoid making a larger batch_size
+        adjusted_batch_size = min(self.batch_size, partial_dataset)
 
         # calculate number of mini batches in a batch
-        n = self.batch_size // self.mini_batch
+        n = adjusted_batch_size // self.mini_batch
 
-        batch_images = np.zeros(
+        batch_images = self.input_strategy.read_batch(
+            adjusted_batch_size, dataset_index
+        )
+        batch_masks = self.output_strategy.read_batch(
+            adjusted_batch_size, dataset_index
+        )
+
+        # preprocess and assign images and masks to the batch
+
+        if self.preprocessing_enabled:
+            for i in range(adjusted_batch_size):
+                image = batch_images[i, ...]
+                mask = batch_masks[i, ...]
+                if self.preprocessing_seed is None:
+                    image_seed = np.random.randint(0, 100000)
+                else:
+                    state = np.random.RandomState(self.preprocessing_seed)
+                    image_seed = state.randint(0, 100000)
+                (
+                    image,
+                    mask,
+                ) = ImagePreprocessor.augmentation_pipeline(
+                    image,
+                    mask=mask,
+                    seed=image_seed,
+                    #!both preprocessing queues are assigned by this time
+                    image_queue=self.preprocessing_queue_image,  # type: ignore
+                    mask_queue=self.preprocessing_queue_mask,  # type: ignore
+                )
+                batch_images[i, ...] = image
+                batch_masks[i, ...] = mask
+
+        batch_masks = ImagePreprocessor.onehot_encode(batch_masks, self.num_classes)
+
+        batch_images = tf.reshape(
+            batch_images,
             (
                 n,
                 self.mini_batch,
                 self.image_size[0],
                 self.image_size[1],
                 self.n_channels,
-            )
+            ),
         )
-
-        batch_masks = np.zeros(
+        batch_masks = tf.reshape(
+            batch_masks,
             (
                 n,
                 self.mini_batch,
-                self.output_reshape[0],
-                self.output_reshape[1],
+                self.output_size[0],
+                self.output_size[1],
                 self.num_classes,
-            )
+            ),
         )
-
-        # preprocess and assign images and masks to the batch
-        for i in range(n):
-            raw_masks = np.zeros(
-                (self.mini_batch, self.output_reshape[0], self.output_reshape[1])
-            )
-
-            for j in range(self.mini_batch):
-                image_index = i * self.mini_batch + j
-
-                image = Image.open(
-                    os.path.join(self.image_path, batch_image_filenames[image_index])
-                ).resize(self.image_size, Image.ANTIALIAS)
-
-                image = np.array(image)
-
-                mask = Image.open(
-                    os.path.join(self.mask_path, batch_mask_filenames[image_index])
-                ).resize(self.output_reshape)
-
-                mask = np.array(mask)
-                # image = image[:, :, self.channel_mask]
-
-                if self.preprocessing_enabled:
-                    if self.preprocessing_seed is None:
-                        image_seed = np.random.randint(0, 100000)
-                    else:
-                        state = np.random.RandomState(self.preprocessing_seed)
-                        image_seed = state.randint(0, 100000)
-
-                    (
-                        image,
-                        mask,
-                    ) = ImagePreprocessor.augmentation_pipeline(
-                        image,
-                        mask=mask,
-                        seed=image_seed,
-                        #!both preprocessing queues are assigned by this time
-                        image_queue=self.preprocessing_queue_image,  # type: ignore
-                        mask_queue=self.preprocessing_queue_mask,  # type: ignore
-                    )
-
-                batch_images[i, j, :, :, :] = image
-                # NOTE: this provides the flexibility required to process both
-                # column and matrix vectors
-                raw_masks[j, :, :] = mask
-
-            batch_masks[i, :, :, :] = ImagePreprocessor.onehot_encode(
-                raw_masks, self.num_classes
-            )
 
         # chaches the batch
         self.image_batch_store = batch_images
@@ -475,17 +421,16 @@ class FlowGeneratorExperimental(Sequence):
         # required to check when to read the next batch
 
     def __len__(self) -> int:
-        return int(np.floor(len(self.image_filenames) / float(self.mini_batch)))
+        return self.input_strategy.get_dataset_size(self.mini_batch)
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
         # check if the batch is already cached
-        index = index % self.dataset_size
 
         if index < self.validity_index - self.batch_size // self.mini_batch:
             self.validity_index = 0
 
         if index == self.validity_index:
-            self.__read_batch(index * self.batch_size, (index + 1) * self.batch_size)
+            self.__read_batch(index * self.mini_batch)
             self.validity_index = (self.batch_size // self.mini_batch) + index
 
         # slices new batch
@@ -495,13 +440,14 @@ class FlowGeneratorExperimental(Sequence):
 
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
-        if self.column_vector:
-            batch_masks = np.reshape(
+
+        if self.is_column:
+            batch_masks = tf.reshape(
                 batch_masks,
                 (
-                    self.mini_batch,
-                    batch_masks.shape[1] * batch_masks[2],
-                    self.num_classes,
+                    batch_masks.shape[0],
+                    batch_masks.shape[1] * batch_masks.shape[2],
+                    batch_masks.shape[3],
                 ),
             )
 
@@ -509,24 +455,14 @@ class FlowGeneratorExperimental(Sequence):
             batch_images = np.moveaxis(batch_images, -1, 1)
             batch_masks = np.moveaxis(batch_masks, -1, 1)
 
-        if self.read_weights:
-            batch_weights = self.weights[
-                index * self.batch_size : (index + 1) * self.batch_size, ...
-            ]
-
-            return batch_images, batch_masks, batch_weights
-        else:
-            return batch_images, batch_masks
+        return batch_images, batch_masks
 
     def on_epoch_end(self) -> None:
         # Shuffle image and mask filenames
         self.__shuffle_filenames()
 
     def __shuffle_filenames(self) -> None:
-        if self.shuffle:
-            state = np.random.RandomState(self.seed + self.shuffle_counter)
-            self.shuffle_counter += 1
-            shuffled_indices = state.permutation(len(self.image_filenames))
-            shuffled_indices = shuffled_indices.astype(int)
-            for array in self.linked_data:
-                array = array[shuffled_indices]
+        new_seed = self.seed + self.shuffle_counter
+        self.input_strategy.shuffle_filenames(new_seed)
+        self.output_strategy.shuffle_filenames(new_seed)
+        self.shuffle_counter += 1

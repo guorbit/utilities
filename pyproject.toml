@@ -21,11 +21,20 @@ dependencies = [
     "Pillow >= 9.4.0",
     "tensorflow >= 2.10",
     "toml >= 0.10.2",
+    "tqdm >= 4.64.1",
+    "pandas >= 1.5.1",
+    "opencv-python-headless >= 4.8.0.76"
 ]
 
 [tool.setuptools]
 packages = ["utilities"]
 
+[tool.pytest.ini_options]
+markers = [
+    "staging: Mark a test as part of the staging environment",
+    "production: Mark a test as part of the production environment",
+    "development: Mark a test as part of the development environment",
+]
 
 [project.optional-dependencies]
 dev = [

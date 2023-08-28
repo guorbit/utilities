@@ -31,7 +31,7 @@ def test_image_onehot_encoder_column() -> None:
     )
     assert np.array_equal(one_hot_image, onehot_test)
 
-
+@pytest.mark.development
 def test_image_onehot_encoder_squarematrix() -> None:
     # predifining input variables
     n_classes = 2
@@ -58,7 +58,7 @@ def test_image_onehot_encoder_squarematrix() -> None:
     )
     assert np.array_equal(one_hot_image, onehot_test)
 
-
+@pytest.mark.development
 def test_image_augmentation_pipeline_squarematrix() -> None:
     # predifining input variables
     image = np.zeros((512, 512, 3))
@@ -89,7 +89,7 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
     assert image_new.shape == (512, 512, 3)
     assert mask_new.shape == (256, 256, 1)
 
-
+@pytest.mark.development
 def test_processing_queue() -> None:
     # creating dummy queues
     
@@ -102,7 +102,7 @@ def test_processing_queue() -> None:
 
     assert image_queue.queue[0].kwargs["seed"] == new_seed
 
-
+@pytest.mark.development
 def test_generate_default_queue() -> None:
     # creating default queues
     image_queue, mask_queue = ImagePreprocessor.generate_default_queue()
@@ -111,7 +111,7 @@ def test_generate_default_queue() -> None:
     assert image_queue.get_queue_length() == 5
     assert mask_queue.get_queue_length() == 2
 
-
+@pytest.mark.development
 def test_flatten() -> None:
     image = np.zeros((512, 512, 3))
     image = tf.convert_to_tensor(image)

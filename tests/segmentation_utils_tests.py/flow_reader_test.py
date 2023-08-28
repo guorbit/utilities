@@ -36,6 +36,7 @@ mock_augmentation_fn = lambda x, y, z, a, b: (x, y)
 
 
 # tests
+@pytest.mark.development
 def test_makes_flow_generator() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -48,7 +49,7 @@ def test_makes_flow_generator() -> None:
     # create a flow generator
     FlowGenerator(**generator_args)
 
-
+@pytest.mark.development
 def test_makes_flow_generator_with_queue() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -78,7 +79,7 @@ def test_makes_flow_generator_with_queue() -> None:
     generator = FlowGenerator(**new_generator_args)
     generator.set_preprocessing_pipeline(image_queue, mask_queue)
 
-
+@pytest.mark.development
 def test_makes_flow_generator_wrong_shape() -> None:
     try:
         patch = MonkeyPatch()
@@ -98,7 +99,7 @@ def test_makes_flow_generator_wrong_shape() -> None:
     except ValueError:
         assert True
 
-
+@pytest.mark.development
 def test_makes_flow_generator_wrong_dimension() -> None:
     try:
         patch = MonkeyPatch()
@@ -118,7 +119,7 @@ def test_makes_flow_generator_wrong_dimension() -> None:
     except ValueError:
         assert True
 
-
+@pytest.mark.development
 def test_flow_generator_with_preprocess() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -141,7 +142,7 @@ def test_flow_generator_with_preprocess() -> None:
     patch.undo()
     patch.undo()
 
-
+@pytest.mark.development
 def test_get_dataset_size() -> None:
     patch = MonkeyPatch()
     patch.setattr(os, "listdir", lambda x: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -166,7 +167,7 @@ def test_get_dataset_size() -> None:
     patch.undo()
     patch.undo()
 
-
+@pytest.mark.development
 def test_get_generator() -> None:
     patch = MonkeyPatch()
 
