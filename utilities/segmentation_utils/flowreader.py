@@ -318,7 +318,7 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_queue_image = preprocessing_queue_image
         self.preprocessing_queue_mask = preprocessing_queue_mask
 
-    def set_mini_batch_size(self, batch_size: int) -> None:
+    def set_mini_batch_size(self, mini_batch: int) -> None:
         """
         Function to set the appropriate minibatch size. Required to allign batch size in the \
         reader with the model. \
@@ -335,11 +335,11 @@ class FlowGeneratorExperimental(Sequence):
         :raises ValueError: if the mini batch size is larger than the batch size
         :raises ValueError: if the batch size is not divisible by the mini batch size
         """
-        if batch_size > self.batch_size:
+        if mini_batch > self.batch_size:
             raise ValueError("The mini batch size cannot be larger than the batch size")
-        if self.batch_size % batch_size != 0:
+        if self.batch_size % mini_batch != 0:
             raise ValueError("The batch size must be divisible by the mini batch size")
-        self.mini_batch = batch_size
+        self.mini_batch = mini_batch
         self.__update_dataset_size()
 
     def __update_dataset_size(self) -> None:
