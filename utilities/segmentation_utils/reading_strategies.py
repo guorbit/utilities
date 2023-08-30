@@ -13,19 +13,54 @@ from PIL import Image
 
 class IReader(Protocol):
     """
-    Interface for the flowreader.
+    Interface meant to be implemented by all reading strategies for usage in \
+    flowgenerator dataset reader.
 
     """
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
+        """
+        Function loads a batch of image filenames starting from the given dataset index and \
+        
+        Parameters
+        ----------
+        :int batch_size: the adjusted batch size to read
+        :int dataset_index: specifies position of image batch within dataset
+
+        Returns
+        -------
+        :return np.ndarray[Any]: A batch of processed images that have been resized \
+        """
         ...
 
     def get_dataset_size(self, minibatch: int) -> int:
+        """
+        Calculates and returns the number of mini-batches that can be created from the available image \
+        files from the target directory.
+
+        Parameters
+        ----------
+        :int minibatch: size of each mini batch
+        """
         ...
 
     def get_image_size(self) -> tuple[int, int]:
+        """
+        Returns the dimensions (height, width) of the images, as a tuple of integers.
+
+        Returns
+        -------
+        :return tuple[int, int]: Dimensions of the images as a tuple of integers.
+        """
         ...
 
     def shuffle_filenames(self, seed: int) -> None:
+        """
+        Shuffle the order of image filenames using the provided seed.
+        
+        Parameters
+        ----------
+        :int seed: seed for random number generator to ensure reproducibility.
+        """
         ...
 
 
@@ -34,22 +69,23 @@ class RGBImageStrategy:
     Strategy optimized for reading RGB images powered by backend PIL.
 
     Parameters
-    ----------------
+    ----------
     :string image_path: path to the image directory
     :tuple image_size: specifies the dimensions of the input image (height, width)
     
     Keyword Arguments
-    -----------------------
-    :Image.Resampling.NEAREST image_resample: changes size of image by adjusting number of pixels,
-    NEAREST indicates the nearest-neighbor resampling which assigns the pixel value by using the closest input pixel.
-    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files in the specified image path.
+    -----------------
+    :Image.Resampling image_resample: resampling method to use when resizing the image. \
+    defaults to Image.Resampling.NEAREST (PIL)
+    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
+    in the specified image path.
     """
 
     def __init__(
         self,
         image_path: str,
         image_size: tuple[int, int],
-        image_resample=Image.Resampling.NEAREST,
+        image_resample:Image.Resampling=Image.Resampling.NEAREST,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(
@@ -58,22 +94,21 @@ class RGBImageStrategy:
         self.image_size = image_size
         self.image_resample = image_resample
 
-    def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+    def read_batch(self, batch_size:int, dataset_index:int) -> np.ndarray:
         """
-        Function processes a batch of image filenames starting from the given dataset index and returns a batch of images.
+        Function loads a batch of image filenames starting from the given dataset index and \
+        returns a batch of images.
+        Each image is resized to the specified image size and converted to grayscale provided.
 
-        Parameters:
-        :int batch_size: the adjusted batch size 
-        :int dataset_index: specifies position of image within dataset
+        Parameters
+        ----------
+        :int batch_size: the adjusted batch size to read
+        :int dataset_index: specifies position of image batch within dataset
         
-        Returns:
-        :numpy.ndarray images : A batch of processed images that have been resized and converted to colour if needed.
-
-        This function takes a slice of image filenames from the provided dataset index up to dataset_index + batch_size.
-        It then processes each image by opening it from the specified image_path, resizing it to the desired image_size, and 
-        converting it to colour based on the image's properties.
-        The processed images are stored in an array and returned.
-
+        Returns
+        -------
+        :return np.ndarray[Any]: A batch of processed images that have been resized and converted \
+        to grayscale if needed.
         """
         # read images with PIL
         batch_filenames = self.image_filenames[
@@ -95,14 +130,18 @@ class RGBImageStrategy:
 
     def get_dataset_size(self, mini_batch) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image filenames.
+        Calculates and returns the number of mini-batches that can be created from the available image \
+        files from the target directory.
 
-        Parameters:
+        Parameters
+        ----------
         :int mini_batch: size of each mini batch
 
-        Returns:
-        :int dataset_size: Number of mini-batches that can be formed from the given image filenames.
-        Result is rounded down to the nearest integer using np.floor to ensure all available images are included.
+        Returns
+        -------
+        :return int: Number of mini-batches that can be formed from the given image filenames. \
+        Result is rounded down to the nearest integer using np.floor to ensure all available \
+        images are included.
 
         """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
@@ -112,17 +151,22 @@ class RGBImageStrategy:
         """
         Returns the dimensions (height, width) of the images, as a tuple of integers.
 
+        Returns
+        -------
+        :return tuple[int, int]: Dimensions of the images as a tuple of integers.
+
+
         """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
         """
         Shuffle the order of image filenames using the provided seed.
+        The order of filenames is rearranged based on these shuffled indices,\
+         creating a new order for the filenames.
 
-        The shuffled indices are generated using a permutation of the image filenames' indices. 
-        The order of filenames is rearranged based on these shuffled indices, creating a new order for the filenames.
-
-        Parameters:
+        Parameters
+        ----------
         :int seed: seed for random number generator to ensure reproducibility.
 
         """
@@ -148,7 +192,7 @@ class RGBImageStrategyMultiThread:
         self,
         image_path: str,
         image_size: tuple[int, int],
-        image_resample=Image.Resampling.NEAREST,
+        image_resample:Image.Resampling=Image.Resampling.NEAREST,
         max_workers: int = 8,
     ):
         self.image_path = image_path

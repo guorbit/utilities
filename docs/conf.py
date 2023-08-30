@@ -89,6 +89,8 @@ html_theme_options = {
     "dark_css_variables": {
         "color-api-background": "#202020",
         "color-api-background-hover": "#505050",
+        "color-sidebar-item-background--current": "#303030",
+        "color-sidebar-item-background--hover": "#303030",
     },
 }
 
