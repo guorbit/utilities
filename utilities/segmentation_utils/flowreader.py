@@ -218,23 +218,17 @@ class FlowGeneratorExperimental(Sequence):
     Additionally, the reader can apply augmentation on the images,
     and one-hot encode them on the fly.
     
-    Note: in case the output is a column vector it has to be in the shape (x, 1)
+    Note: in case the output is a column vector, the output strategy has to be set to \
+    a square matrix, and the is_column parameter has to be set to True
     Note: this is an experimental version of the flow generator, which uses a \
     custom implemented dataloader instead of the keras ImageDataGenerator
-    #TODO: Instead of using direct paths, and arguments, reading heads should be used
-    #TODO: as it reduces the number of arguments, and makes the code more readable and reduces
-    #TODO: cupling
 
     Parameters
     ----------
-    :string image: path to the image directory
-    :string mask: path to the mask directory
-    :int batch_size: 
-    :tuple image_size: specifies the size of the input image
-    :tuple output_size: specifies the size of the output mask
+    :IReader input_strategy: input reading strategy to be used
+    :IReader output_strategy: output reading strategy to be used
     :list[bool] channel_mask: specifies which channels of the input image to use
     :int num_classes: number of classes in the output mask
-
 
     Keyword Arguments
     -----------------
@@ -245,11 +239,9 @@ class FlowGeneratorExperimental(Sequence):
     :int preprocessing_seed: seed for preprocessing, defaults to None
     :preprocessing_queue_image: preprocessing queue for images
     :preprocessing_queue_mask: preprocessing queue for masks
-    :bool read_weights: whether to read the weights from the mask directory, defaults to False
-    :string weights_path: path to the weights directory, defaults to None
-    :int shuffle_counter: the seed offset used for shuffling, defaults to 0
     :ImageOrdering image_ordering: the ordering of the image channels, defaults to channels_last
-    
+    :bool is_column: whether the output is a column vector or not, defaults to False
+
     Raises
     ------
     :ValueError: if the output size is not a tuple of length 2
