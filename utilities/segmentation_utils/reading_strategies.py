@@ -12,6 +12,10 @@ from PIL import Image
 
 
 class IReader(Protocol):
+    """
+    Interface for the flowreader.
+
+    """
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         ...
 
@@ -28,6 +32,17 @@ class IReader(Protocol):
 class RGBImageStrategy:
     """
     Strategy optimized for reading RGB images powered by backend PIL.
+
+    Parameters
+    ----------------
+    :string image_path: path to the image directory
+    :tuple image_size: specifies the dimensions of the input image (height, width)
+    
+    Keyword Arguments
+    -----------------------
+    :Image.Resampling.NEAREST image_resample: changes size of image by adjusting number of pixels,
+    NEAREST indicates the nearest-neighbor resampling which assigns the pixel value by using the closest input pixel.
+    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files in the specified image path.
     """
 
     def __init__(
@@ -44,6 +59,22 @@ class RGBImageStrategy:
         self.image_resample = image_resample
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+        """
+        Function processes a batch of image filenames starting from the given dataset index and returns a batch of images.
+
+        Parameters:
+        :int batch_size: the adjusted batch size 
+        :int dataset_index: specifies position of image within dataset
+        
+        Returns:
+        :numpy.ndarray images : A batch of processed images that have been resized and converted to colour if needed.
+
+        This function takes a slice of image filenames from the provided dataset index up to dataset_index + batch_size.
+        It then processes each image by opening it from the specified image_path, resizing it to the desired image_size, and 
+        converting it to colour based on the image's properties.
+        The processed images are stored in an array and returned.
+
+        """
         # read images with PIL
         batch_filenames = self.image_filenames[
             dataset_index : dataset_index + batch_size
@@ -63,13 +94,39 @@ class RGBImageStrategy:
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
+        """
+        Calculates and returns the number of mini-batches that can be created from the available image filenames.
+
+        Parameters:
+        :int mini_batch: size of each mini batch
+
+        Returns:
+        :int dataset_size: Number of mini-batches that can be formed from the given image filenames.
+        Result is rounded down to the nearest integer using np.floor to ensure all available images are included.
+
+        """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
 
     def get_image_size(self) -> tuple[int, int]:
+        """
+        Returns the dimensions (height, width) of the images, as a tuple of integers.
+
+        """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
+        """
+        Shuffle the order of image filenames using the provided seed.
+
+        The shuffled indices are generated using a permutation of the image filenames' indices. 
+        The order of filenames is rearranged based on these shuffled indices, creating a new order for the filenames.
+
+        Parameters:
+        :int seed: seed for random number generator to ensure reproducibility.
+
+        """
+
         state = np.random.RandomState(seed)
         shuffled_indices = state.permutation(len(self.image_filenames))
         shuffled_indices = shuffled_indices.astype(int)
@@ -80,6 +137,11 @@ class RGBImageStrategyMultiThread:
     """
     Strategy optimized for reading RGB images powered by backend PIL.
     Multi threaded version.
+
+    parameters:
+
+    keyword arguments: 
+
     """
 
     def __init__(
@@ -141,6 +203,9 @@ class RGBImageStrategyMultiThread:
         return dataset_size
 
     def get_image_size(self) -> tuple[int, int]:
+        """
+
+        """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
@@ -152,7 +217,8 @@ class RGBImageStrategyMultiThread:
 
 class HSImageStrategy:
     """
-    Strategy optimized for reading hyperspectral images powered by backend OpenCV
+    Strategy optimized for reading hyperspectral images powered by backend OpenCV.
+
     """
 
     def __init__(
