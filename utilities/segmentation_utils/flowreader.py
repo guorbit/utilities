@@ -321,7 +321,10 @@ class FlowGeneratorExperimental(Sequence):
     def set_mini_batch_size(self, batch_size: int) -> None:
         """
         Function to set the appropriate minibatch size. Required to allign batch size in the \
-        reader with the model. Does not change the batch size of the reader.
+        reader with the model. \
+        Does not change the batch size of the reader. \
+        Calls get_dataset_size to update the dataset size, as an extra API call.
+
 
         Parameters
         ----------
@@ -340,9 +343,20 @@ class FlowGeneratorExperimental(Sequence):
         self.__update_dataset_size()
 
     def __update_dataset_size(self) -> None:
+        """
+        Updates the dataset size. Relies on the input strategy to get the dataset size.
+        """
         self.dataset_size = self.input_strategy.get_dataset_size(self.mini_batch)
 
     def __read_batch(self, dataset_index: int) -> None:
+        """
+        Requests a batch from the available strategies, which is then passed to the preprocessor, \
+        and cached for later use.
+
+        Parameters
+        ----------
+        :int dataset_index: the index of the dataset to read from
+        """
         #!adjust the batch size as it is passed to the function
         # calculates remaining images in a dataset and scales it down by multiplying with minibatch
         partial_dataset = self.dataset_size * self.mini_batch - dataset_index
@@ -428,9 +442,27 @@ class FlowGeneratorExperimental(Sequence):
         # required to check when to read the next batch
 
     def __len__(self) -> int:
+        """
+        Returns the length of the dataset. Relies on the input strategy to get the dataset size.
+
+        Returns
+        -------
+        :return int: length of the dataset
+        """
         return self.input_strategy.get_dataset_size(self.mini_batch)
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Returns a mini batch of images and masks. \
+
+        Parameters
+        ----------
+        :int index: the index of the mini batch to return
+
+        Returns
+        -------
+        :return tuple[np.ndarray, np.ndarray]: a mini batch of images and masks
+        """
         # check if the batch is already cached
 
         if index < self.validity_index - self.batch_size // self.mini_batch:
@@ -465,10 +497,17 @@ class FlowGeneratorExperimental(Sequence):
         return batch_images, batch_masks
 
     def on_epoch_end(self) -> None:
+        """
+        Shuffles the dataset at the end of each epoch. 
+        Can be provided to model.
+        """
         # Shuffle image and mask filenames
         self.__shuffle_filenames()
 
     def __shuffle_filenames(self) -> None:
+        """
+        Shuffles the files of the available strategies.
+        """
         new_seed = self.seed + self.shuffle_counter
         self.input_strategy.shuffle_filenames(new_seed)
         self.output_strategy.shuffle_filenames(new_seed)
