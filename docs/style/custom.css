@@ -13,6 +13,11 @@ h1 {
 h2 {
     font-size: 24px;
 }
+.sidebar-search {
+
+    border-bottom: 0px !important;
+    border-top: 0px !important;
+}
 
 .sidebar-search-container {
     background-color: #303030;
