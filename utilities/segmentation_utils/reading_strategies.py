@@ -19,7 +19,7 @@ class IReader(Protocol):
     """
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         """
-        Function loads a batch of image filenames starting from the given dataset index and \
+        Function loads a batch of image filenames starting from the given dataset index
         
         Parameters
         ----------
@@ -140,8 +140,6 @@ class RGBImageStrategy:
         Returns
         -------
         :return int: Number of mini-batches that can be formed from the given image filenames. \
-        Result is rounded down to the nearest integer using np.floor to ensure all available \
-        images are included.
 
         """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
@@ -176,15 +174,23 @@ class RGBImageStrategy:
         shuffled_indices = shuffled_indices.astype(int)
         self.image_filenames = self.image_filenames[shuffled_indices]
 
-
 class RGBImageStrategyMultiThread:
     """
     Strategy optimized for reading RGB images powered by backend PIL.
     Multi threaded version.
 
-    parameters:
+    Parameters
+    ----------
+    :string image_path: path to the image directory
+    :tuple image_size: specifies the dimensions of the input image (height, width)
+    :int max_workers: number of threads to use for parallel processing
 
-    keyword arguments: 
+    Keyword Arguments
+    -----------------
+    :Image.Resampling image_resample: resampling method to use when resizing the image. \
+    defaults to Image.Resampling.NEAREST (PIL)
+    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
+    in the specified image path.
 
     """
 
@@ -204,12 +210,46 @@ class RGBImageStrategyMultiThread:
         self.max_workers = max_workers
 
     def __read_single_image_pil(self, filename, image_path, image_size, image_resample):
+        """
+        Function to read a single image using PIL and resize it to the specified image size.
+
+        Parameters:
+        -----------
+        :string filename: name of the image file
+        :string image_path: path to the image directory
+        :tuple image_size: specifies the dimensions of the input image (height, width)
+        :Image.Resampling image_resample: resampling method to use when resizing the image. \
+        defaults to Image.Resampling.NEAREST (PIL)
+
+        Returns:
+        --------
+        :return np.ndarray[Any]: A batch of processed images that have been resized.
+
+
+        """
         image = Image.open(os.path.join(image_path, filename)).resize(
             image_size, image_resample
         )
         return np.array(image)
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
+        """
+        Function loads a batch of image filenames starting from the given dataset index and \
+        returns a batch of images.
+        Each image is resized to the specified image size and converted to grayscale provided.
+        Multi-threading is used to speed up the process by reading multiple images in parallel and \
+        storing them in the images array. 
+
+        Parameters
+        ----------
+        :int batch_size: the adjusted batch size to read
+        :int dataset_index: specifies position of image batch within dataset
+
+        Returns
+        -------
+        :return np.ndarray[Any]: A batch of processed images that have been resized and converted \
+        to grayscale if needed.
+        """
         batch_filenames = self.image_filenames[
             dataset_index : dataset_index + batch_size
         ]
@@ -243,16 +283,44 @@ class RGBImageStrategyMultiThread:
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
+        """
+        Calculates and returns the number of mini-batches that can be created from the available image \
+        files from the target directory.
+
+        Parameters
+        ----------
+        :int mini_batch: size of each mini batch
+
+        Returns
+        -------
+        :return int: Number of mini-batches that can be formed from the given image filenames. \
+
+        """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
 
     def get_image_size(self) -> tuple[int, int]:
         """
+        Returns the dimensions (height, width) of the images, as a tuple of integers.
 
+        Returns
+        -------
+        :return tuple[int, int]: Dimensions of the images as a tuple of integers.
+    
         """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
+        """
+        Shuffle the order of image filenames using the provided seed.
+        The order of filenames is rearranged based on these shuffled indices,\
+        creating a new order for the filenames.
+
+        Parameters
+        ----------
+        :int seed: seed for random number generator to ensure reproducibility.
+
+        """
         state = np.random.RandomState(seed)
         shuffled_indices = state.permutation(len(self.image_filenames))
         shuffled_indices = shuffled_indices.astype(int)
@@ -262,6 +330,18 @@ class RGBImageStrategyMultiThread:
 class HSImageStrategy:
     """
     Strategy optimized for reading hyperspectral images powered by backend OpenCV.
+
+    Parameters
+    ----------
+    :string image_path: path to the image directory
+    :tuple image_size: specifies the dimensions of the input image (height, width)
+    :int bands: number of bands in the image
+
+    Keyword Arguments
+    -----------------
+    :Any package: package to use for reading images. Defaults to OpenCV.
+    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
+    in the specified image path.
 
     """
 
@@ -275,6 +355,14 @@ class HSImageStrategy:
         self.bands = self.__get_channels()
 
     def __get_channels(self) -> int:
+        """
+        Function to determine the number of channels in the image.
+
+        Returns
+        -------
+        :return int: number of channels in the image
+
+        """
         # Open the first image to determine the number of channels
         sample_image_path = os.path.join(self.image_path, self.image_filenames[0])
         sample_image = self.package.imread(
@@ -283,6 +371,22 @@ class HSImageStrategy:
         return sample_image.shape[2] if len(sample_image.shape) == 3 else 1
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+        """
+        Function loads a batch of image filenames starting from the given dataset index and \
+        returns a batch of images.
+        Each image is resized to the specified image size and converted to RGB if needed.
+
+        Parameters
+        ----------
+        :int batch_size: the adjusted batch size to read
+        :int dataset_index: specifies position of image batch within dataset
+        
+        Returns
+        -------
+        :return np.ndarray[Any]: A batch of processed images that have been resized and converted \
+        to RGB if needed.
+
+        """
         # Read a sample image to determine the number of bands
 
         # Initialize images array
@@ -311,13 +415,44 @@ class HSImageStrategy:
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
+        """
+        Calculates and returns the number of mini-batches that can be created from the available image \
+        files from the target directory.
+
+        Parameters
+        ----------
+        :int mini_batch: size of each mini batch
+
+        Returns
+        -------
+        :return int: Number of mini-batches that can be formed from the given image filenames. \
+
+        """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
 
     def get_image_size(self) -> tuple[int, int]:
+        """
+        Returns the dimensions (height, width) of the images, as a tuple of integers.
+
+        Returns
+        -------
+        :return tuple[int, int]: Dimensions of the images as a tuple of integers.
+
+        """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
+        """
+        Shuffle the order of image filenames using the provided seed.
+        The order of filenames is rearranged based on these shuffled indices,\
+        creating a new order for the filenames.
+
+        Parameters
+        ----------
+        :int seed: seed for random number generator to ensure reproducibility.
+        
+        """
         state = np.random.RandomState(seed)
         shuffled_indices = state.permutation(len(self.image_filenames))
         shuffled_indices = shuffled_indices.astype(int)
@@ -325,6 +460,24 @@ class HSImageStrategy:
 
 
 class HSImageStrategyMultiThread:
+    """
+    Strategy optimized for reading hyperspectral images powered by backend OpenCV.
+    Multi threaded version.
+
+    Parameters
+    ----------
+    :string image_path: path to the image directory
+    :tuple image_size: specifies the dimensions of the input image (height, width)
+    :int bands: number of bands in the image
+    :int max_workers: number of threads to use for parallel processing
+
+    Keyword Arguments
+    -----------------
+    :Any package: package to use for reading images. Defaults to OpenCV.
+    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
+    in the specified image path.
+
+    """
     def __init__(
         self,
         image_path: str,
@@ -340,6 +493,14 @@ class HSImageStrategyMultiThread:
         self.max_workers = max_workers
 
     def __get_channels(self) -> int:
+        """
+        Function to determine the number of channels in the image.
+
+        Returns
+        -------
+        :return int: number of channels in the image
+
+        """
         # Open the first image to determine the number of channels
         sample_image_path = os.path.join(self.image_path, self.image_filenames[0])
         sample_image = self.package.imread(
@@ -350,6 +511,20 @@ class HSImageStrategyMultiThread:
     def __read_single_image(
         self, filename: str, package: Any, image_size: tuple[int, int, int]
     ) -> np.ndarray:
+        """
+        Function to read a single image using OpenCV and resize it to the specified image size.
+
+        Parameters:
+        -----------
+        :string filename: name of the image file
+        :Any package: package to use for reading images. Defaults to OpenCV.
+        :tuple image_size: specifies the dimensions of the input image (height, width)
+
+        Returns:
+        --------
+        :return np.ndarray[Any]: A batch of processed images that have been resized.
+
+        """
         image = package.imread(filename, package.IMREAD_UNCHANGED)
         image = package.resize(image, image_size)
         if len(image.shape) == 3 and image.shape[2] == 3:
@@ -357,6 +532,24 @@ class HSImageStrategyMultiThread:
         return image
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+        """
+        Function loads a batch of image filenames starting from the given dataset index and \
+        returns a batch of images.
+        Each image is resized to the specified image size and converted to RGB if needed.
+        Multi-threading is used to speed up the process by reading multiple images in parallel and \
+        storing them in the images array.
+
+        Parameters
+        ----------
+        :int batch_size: the adjusted batch size to read
+        :int dataset_index: specifies position of image batch within dataset
+
+        Returns
+        -------
+        :return np.ndarray[Any]: A batch of processed images that have been resized and converted \
+        to RGB if needed.
+
+        """
         # Initialize images array
         images = np.zeros(
             (batch_size, self.image_size[1], self.image_size[0], self.bands)
@@ -385,13 +578,40 @@ class HSImageStrategyMultiThread:
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
+        """
+        Calculates and returns the number of mini-batches that can be created from the available image \
+        files from the target directory.
+
+        Parameters
+        ----------
+        :int mini_batch: size of each mini batch
+
+        Returns
+        -------
+        :return int: Number of mini-batches that can be formed from the given image filenames. \
+
+        """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
 
     def get_image_size(self) -> tuple[int, int]:
+        """
+        Returns the dimensions (height, width) of the images, as a tuple of integers.
+
+        Returns
+        -------
+        :return tuple[int, int]: Dimensions of the images as a tuple of integers.
+
+        """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
+        """
+        Shuffle the order of image filenames using the provided seed.
+        The order of filenames is rearranged based on these shuffled indices,\
+        creating a new order for the filenames.
+
+        """
         state = np.random.RandomState(seed)
         shuffled_indices = state.permutation(len(self.image_filenames))
         shuffled_indices = shuffled_indices.astype(int)
@@ -401,6 +621,20 @@ class HSImageStrategyMultiThread:
 class RasterImageStrategy:
     """
     Strategy optimized for reading raster images powered by backend rasterio.
+
+    Parameters
+    ----------
+    :string image_path: path to the image directory
+    :tuple image_size: specifies the dimensions of the input image (height, width)
+
+    Keyword Arguments
+    -----------------
+    :Image.Resampling image_resample: resampling method to use when resizing the image. \
+    defaults to Image.Resampling.NEAREST (PIL)
+    :Any package: package to use for reading images. Defaults to rasterio.
+    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
+    in the specified image path.
+
     """
 
     # read images with rasterio
@@ -428,6 +662,21 @@ class RasterImageStrategy:
             self.bands_enabled = bands_enabled
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
+        """
+        Function loads a batch of image filenames starting from the given dataset index and \
+        returns a batch of images.
+
+        Parameters
+        ----------
+        :int batch_size: the adjusted batch size to read
+        :int dataset_index: specifies position of image batch within dataset
+
+        Returns
+        -------
+        :return np.ndarray[Any]: A batch of processed images that have been resized \
+        
+        """
+
         # read images with rasterio
         batch_filenames = self.image_filenames[
             dataset_index : dataset_index + batch_size
@@ -455,13 +704,44 @@ class RasterImageStrategy:
         return np.array(images)
 
     def get_dataset_size(self, mini_batch) -> int:
+        """
+        Calculates and returns the number of mini-batches that can be created from the available image \
+        files from the target directory.
+
+        Parameters
+        ----------
+        :int mini_batch: size of each mini batch
+
+        Returns
+        -------
+        :return int: Number of mini-batches that can be formed from the given image filenames. \
+
+        """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
 
     def get_image_size(self) -> tuple[int, int]:
+        """
+        Returns the dimensions (height, width) of the images, as a tuple of integers.
+
+        Returns
+        -------
+        :return tuple[int, int]: Dimensions of the images as a tuple of integers.
+
+        """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
+        """
+        Shuffle the order of image filenames using the provided seed.
+        The order of filenames is rearranged based on these shuffled indices,\
+        creating a new order for the filenames.
+
+        Parameters
+        ----------
+        :int seed: seed for random number generator to ensure reproducibility.
+    
+        """
         state = np.random.RandomState(seed)
         shuffled_indices = state.permutation(len(self.image_filenames))
         shuffled_indices = shuffled_indices.astype(int)
@@ -472,6 +752,21 @@ class RasterImageStrategyMultiThread:
     """
     Strategy optimized for reading raster images powered by backend rasterio.
     Multi threaded version.
+
+    Parameters
+    ----------
+    :string image_path: path to the image directory
+    :tuple image_size: specifies the dimensions of the input image (height, width)
+    :int max_workers: number of threads to use for parallel processing
+
+    Keyword Arguments
+    -----------------
+    :Image.Resampling image_resample: resampling method to use when resizing the image. \
+    defaults to Image.Resampling.NEAREST (PIL)
+    :Any package: package to use for reading images. Defaults to rasterio.
+    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
+    in the specified image path.
+    :int bands: number of bands in the image
     """
 
     # read images with rasterio
@@ -504,7 +799,22 @@ class RasterImageStrategyMultiThread:
     def __read_single_image(
         self, filename: str, package: Any, image_size: tuple[int, int, int]
     ) -> np.ndarray:
+        """
+        Function to read a single image using rasterio and resize it to the specified image size.
+    
+        Parameters:
+        -----------
+        :string filename: name of the image file
+        :Any package: package to use for reading images. Defaults to rasterio.  
+        :tuple image_size: specifies the dimensions of the input image (height, width)
+    
+        Returns:
+        --------
+        :return np.ndarray[Any]: A batch of processed images that have been resized.
+    
+        """
         image = np.zeros((self.bands, *image_size[1:None]))
+       
         with package.open(filename) as dataset:
             for j in range(self.bands):
                 if not self.bands_enabled[j]:
@@ -516,6 +826,23 @@ class RasterImageStrategyMultiThread:
         return image[self.bands_enabled, :, :]
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
+        """
+        Function loads a batch of image filenames starting from the given dataset index and \
+        returns a batch of images.
+        Each image is resized to the specified image size and converted to RGB if needed.
+        Multi-threading is used to speed up the process by reading multiple images in parallel and \
+        storing them in the images array.
+
+        Parameters
+        ----------
+        :int batch_size: the adjusted batch size to read
+        :int dataset_index: specifies position of image batch within dataset
+
+        Returns
+        -------
+        :return np.ndarray[Any]: A batch of processed images that have been resized \
+        
+        """
         batch_filenames = [
             os.path.join(self.image_path, filename)
             for filename in self.image_filenames[
@@ -546,13 +873,44 @@ class RasterImageStrategyMultiThread:
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
+        """
+        Calculates and returns the number of mini-batches that can be created from the available image \
+        files from the target directory.
+
+        Parameters
+        ----------
+        :int mini_batch: size of each mini batch
+
+        Returns
+        -------
+        :return int: Number of mini-batches that can be formed from the given image filenames. 
+
+        """
         dataset_size = int(np.floor(len(self.image_filenames) / float(mini_batch)))
         return dataset_size
 
     def get_image_size(self) -> tuple[int, int]:
+        """
+        Returns the dimensions (height, width) of the images, as a tuple of integers.
+
+        Returns
+        -------
+        :return tuple[int, int]: Dimensions of the images as a tuple of integers.
+
+        """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
+        """
+        Shuffle the order of image filenames using the provided seed.
+        The order of filenames is rearranged based on these shuffled indices,\
+        creating a new order for the filenames.
+
+        Parameters
+        ----------
+        :int seed: seed for random number generator to ensure reproducibility.
+
+        """
         state = np.random.RandomState(seed)
         shuffled_indices = state.permutation(len(self.image_filenames))
         shuffled_indices = shuffled_indices.astype(int)
