@@ -77,8 +77,7 @@ class RGBImageStrategy:
     -----------------
     :Image.Resampling image_resample: resampling method to use when resizing the image. \
     defaults to Image.Resampling.NEAREST (PIL)
-    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
-    in the specified image path.
+    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files \
     """
 
     def __init__(
@@ -153,15 +152,12 @@ class RGBImageStrategy:
         -------
         :return tuple[int, int]: Dimensions of the images as a tuple of integers.
 
-
         """
         return self.image_size
 
     def shuffle_filenames(self, seed: int) -> None:
         """
         Shuffle the order of image filenames using the provided seed.
-        The order of filenames is rearranged based on these shuffled indices,\
-         creating a new order for the filenames.
 
         Parameters
         ----------
@@ -189,8 +185,7 @@ class RGBImageStrategyMultiThread:
     -----------------
     :Image.Resampling image_resample: resampling method to use when resizing the image. \
     defaults to Image.Resampling.NEAREST (PIL)
-    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
-    in the specified image path.
+    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files \
 
     """
 
@@ -234,11 +229,7 @@ class RGBImageStrategyMultiThread:
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         """
-        Function loads a batch of image filenames starting from the given dataset index and \
-        returns a batch of images.
-        Each image is resized to the specified image size and converted to grayscale provided.
-        Multi-threading is used to speed up the process by reading multiple images in parallel and \
-        storing them in the images array. 
+        Function loads a batch of image filenames starting from the given dataset index.
 
         Parameters
         ----------
@@ -313,8 +304,6 @@ class RGBImageStrategyMultiThread:
     def shuffle_filenames(self, seed: int) -> None:
         """
         Shuffle the order of image filenames using the provided seed.
-        The order of filenames is rearranged based on these shuffled indices,\
-        creating a new order for the filenames.
 
         Parameters
         ----------
@@ -340,9 +329,7 @@ class HSImageStrategy:
     Keyword Arguments
     -----------------
     :Any package: package to use for reading images. Defaults to OpenCV.
-    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
-    in the specified image path.
-
+    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files \
     """
 
     def __init__(
@@ -445,8 +432,6 @@ class HSImageStrategy:
     def shuffle_filenames(self, seed: int) -> None:
         """
         Shuffle the order of image filenames using the provided seed.
-        The order of filenames is rearranged based on these shuffled indices,\
-        creating a new order for the filenames.
 
         Parameters
         ----------
@@ -474,8 +459,7 @@ class HSImageStrategyMultiThread:
     Keyword Arguments
     -----------------
     :Any package: package to use for reading images. Defaults to OpenCV.
-    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
-    in the specified image path.
+    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files \
 
     """
     def __init__(
@@ -536,8 +520,6 @@ class HSImageStrategyMultiThread:
         Function loads a batch of image filenames starting from the given dataset index and \
         returns a batch of images.
         Each image is resized to the specified image size and converted to RGB if needed.
-        Multi-threading is used to speed up the process by reading multiple images in parallel and \
-        storing them in the images array.
 
         Parameters
         ----------
@@ -608,8 +590,6 @@ class HSImageStrategyMultiThread:
     def shuffle_filenames(self, seed: int) -> None:
         """
         Shuffle the order of image filenames using the provided seed.
-        The order of filenames is rearranged based on these shuffled indices,\
-        creating a new order for the filenames.
 
         """
         state = np.random.RandomState(seed)
@@ -632,9 +612,7 @@ class RasterImageStrategy:
     :Image.Resampling image_resample: resampling method to use when resizing the image. \
     defaults to Image.Resampling.NEAREST (PIL)
     :Any package: package to use for reading images. Defaults to rasterio.
-    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
-    in the specified image path.
-
+    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files \
     """
 
     # read images with rasterio
@@ -733,8 +711,6 @@ class RasterImageStrategy:
     def shuffle_filenames(self, seed: int) -> None:
         """
         Shuffle the order of image filenames using the provided seed.
-        The order of filenames is rearranged based on these shuffled indices,\
-        creating a new order for the filenames.
 
         Parameters
         ----------
@@ -763,8 +739,7 @@ class RasterImageStrategyMultiThread:
     :Image.Resampling image_resample: resampling method to use when resizing the image. \
     defaults to Image.Resampling.NEAREST (PIL)
     :Any package: package to use for reading images. Defaults to rasterio.
-    :return numpy.ndarray: Array of image filenames obtained by sorting the list of files \
-    in the specified image path.
+    :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files \
     :int bands: number of bands in the image
     """
 
@@ -827,11 +802,7 @@ class RasterImageStrategyMultiThread:
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         """
-        Function loads a batch of image filenames starting from the given dataset index and \
-        returns a batch of images.
-        Each image is resized to the specified image size and converted to RGB if needed.
-        Multi-threading is used to speed up the process by reading multiple images in parallel and \
-        storing them in the images array.
+        Function loads a batch of image filenames starting from the given dataset index.
 
         Parameters
         ----------
@@ -903,8 +874,6 @@ class RasterImageStrategyMultiThread:
     def shuffle_filenames(self, seed: int) -> None:
         """
         Shuffle the order of image filenames using the provided seed.
-        The order of filenames is rearranged based on these shuffled indices,\
-        creating a new order for the filenames.
 
         Parameters
         ----------
