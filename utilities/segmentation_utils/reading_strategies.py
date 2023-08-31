@@ -346,12 +346,12 @@ class HSImageStrategy:
     """
 
     def __init__(
-        self, image_path: str, image_size: tuple[int, int], package: Any = cv2
+        self, image_path: str, image_size: tuple[int, int], package: Any = None
     ) -> None:
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.image_size = image_size
-        self.package = package
+        self.package = package or cv2
         self.bands = self.__get_channels()
 
     def __get_channels(self) -> int:
@@ -482,13 +482,13 @@ class HSImageStrategyMultiThread:
         self,
         image_path: str,
         image_size: tuple[int, int],
-        package: Any = cv2,
+        package: Any = None,
         max_workers: int = 8,
     ) -> None:
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.image_size = image_size
-        self.package = package
+        self.package = package or cv2
         self.bands = self.__get_channels()
         self.max_workers = max_workers
 
@@ -643,15 +643,14 @@ class RasterImageStrategy:
         image_path: str,
         image_size: tuple[int, int],
         image_resample=Image.Resampling.NEAREST,
-        package: Any = rasterio,
+        package: Any = None,
         bands_enabled: Union[list[bool], object] = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.image_size = image_size
         self.image_resample = image_resample
-        self.package = package
-
+        self.package = package or rasterio
         # gets the number of bands for the dataset
         self.bands = package.open(
             os.path.join(self.image_path, self.image_filenames[0])
@@ -776,14 +775,15 @@ class RasterImageStrategyMultiThread:
         image_size: tuple[int, int],
         image_resample=Image.Resampling.NEAREST,
         max_workers: int = 8,
-        package: Any = rasterio,
+
         bands_enabled: Union[list[bool], object] = None,
+        package: Any = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.image_size = image_size
         self.image_resample = image_resample
-        self.package = package
+        self.package = package or rasterio
         self.max_workers = max_workers
         # gets the number of bands for the dataset
         self.bands = package.open(
@@ -801,20 +801,20 @@ class RasterImageStrategyMultiThread:
     ) -> np.ndarray:
         """
         Function to read a single image using rasterio and resize it to the specified image size.
-    
+
         Parameters:
         -----------
         :string filename: name of the image file
         :Any package: package to use for reading images. Defaults to rasterio.  
         :tuple image_size: specifies the dimensions of the input image (height, width)
-    
+
         Returns:
         --------
         :return np.ndarray[Any]: A batch of processed images that have been resized.
-    
+
         """
         image = np.zeros((self.bands, *image_size[1:None]))
-       
+
         with package.open(filename) as dataset:
             for j in range(self.bands):
                 if not self.bands_enabled[j]:
