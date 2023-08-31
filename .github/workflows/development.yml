@@ -48,7 +48,7 @@ jobs:
         python -m pytest -v -m "development"
 
   devops:
-    needs: test
+    needs: dependency-install
     environment: development
     runs-on: ubuntu-latest
     steps:
