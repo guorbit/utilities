@@ -2,8 +2,9 @@ name: stable pypi build push
 
 on:
     push:
-      tags:
-        - "v*"
+      branches: [ "development" ]
+    pull_request:
+      branches: [ "development" ]
 
 jobs:
     build-push-pypi:
