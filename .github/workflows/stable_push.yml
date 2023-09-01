@@ -10,6 +10,8 @@ jobs:
     build-push-pypi:
         runs-on: ubuntu-latest
         environment: stable_pypi
+        permissions:
+            id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
         steps:
             - uses: actions/checkout@v3
             - name: Setup python 3.10
@@ -21,12 +23,11 @@ jobs:
                   python -m pip install --upgrade build twine
                   python -m build
                   twine check --strict dist/*
+            
             - name: Publish to PyPI
               uses: pypa/gh-action-pypi-publish@release/v1
-              with:
-                user: __token__
-                password: ${{ secrets.PYPI_TEST}}
-                repository_url: https://upload.pypi.org/legacy/
+ 
+                
                     
 
             
