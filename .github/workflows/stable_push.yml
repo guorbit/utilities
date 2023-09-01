@@ -1,10 +1,10 @@
 name: stable pypi build push
 
 on:
-    push:
-      branches: [ "development" ]
-    pull_request:
-      branches: [ "development" ]
+    release:
+      types:
+        - released
+  
 
 jobs:
     build-push-pypi:
