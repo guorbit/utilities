@@ -34,7 +34,9 @@ generator_args = {
 mock_onehot_fn = lambda x, y, z: np.rollaxis(np.array([x for i in range(z)]), 0, 3)
 mock_augmentation_fn = lambda x, y, z, a, b: (x, y)
 
+
 # tests
+@pytest.mark.development
 def test_makes_flow_generator() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -47,7 +49,7 @@ def test_makes_flow_generator() -> None:
     # create a flow generator
     FlowGenerator(**generator_args)
 
-
+@pytest.mark.development
 def test_makes_flow_generator_with_queue() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -60,10 +62,14 @@ def test_makes_flow_generator_with_queue() -> None:
 
     # create dummy queues
     image_queue = ImagePreprocessor.PreprocessingQueue(
-        [lambda x, y, seed: x], [{"y": 1}]
+        [
+            ImagePreprocessor.PreFunction(lambda x, y, seed: x, y=1),
+        ]
     )
     mask_queue = ImagePreprocessor.PreprocessingQueue(
-        [lambda x, y, seed: x], [{"y": 1}]
+        [
+            ImagePreprocessor.PreFunction(lambda x, y, seed: x, y=1),
+        ]
     )
 
     # create a copy of the generator args
@@ -73,7 +79,7 @@ def test_makes_flow_generator_with_queue() -> None:
     generator = FlowGenerator(**new_generator_args)
     generator.set_preprocessing_pipeline(image_queue, mask_queue)
 
-
+@pytest.mark.development
 def test_makes_flow_generator_wrong_shape() -> None:
     try:
         patch = MonkeyPatch()
@@ -93,7 +99,7 @@ def test_makes_flow_generator_wrong_shape() -> None:
     except ValueError:
         assert True
 
-
+@pytest.mark.development
 def test_makes_flow_generator_wrong_dimension() -> None:
     try:
         patch = MonkeyPatch()
@@ -113,7 +119,7 @@ def test_makes_flow_generator_wrong_dimension() -> None:
     except ValueError:
         assert True
 
-
+@pytest.mark.development
 def test_flow_generator_with_preprocess() -> None:
     patch = MonkeyPatch()
     # mock an imagedatagenerator from keras
@@ -136,7 +142,7 @@ def test_flow_generator_with_preprocess() -> None:
     patch.undo()
     patch.undo()
 
-
+@pytest.mark.development
 def test_get_dataset_size() -> None:
     patch = MonkeyPatch()
     patch.setattr(os, "listdir", lambda x: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -161,7 +167,7 @@ def test_get_dataset_size() -> None:
     patch.undo()
     patch.undo()
 
-
+@pytest.mark.development
 def test_get_generator() -> None:
     patch = MonkeyPatch()
 
@@ -180,6 +186,7 @@ def test_get_generator() -> None:
     assert generator != None
     patch.undo()
     patch.undo()
+
 
 @pytest.mark.skip(reason="Deprecated functionality")
 def test_reader_error_raised() -> None:
