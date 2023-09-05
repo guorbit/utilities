@@ -27,4 +27,6 @@ jobs:
             context: ./image_files/software-base/
             file: ./image_files/software-base/Dockerfile
             push: true
-            tags: guorbit/orbit-software-base:latest
+            tags: |
+                guorbit/orbit-software-base:latest
+                guorbit/orbit-software-base:${{github.event.release.tag_name}}
