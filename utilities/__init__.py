@@ -3,6 +3,7 @@ import os
 import toml
 
 
+
 def get_version_from_pyproject():
     try:
         # Determine the path to pyproject.toml relative to this file
