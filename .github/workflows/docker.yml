@@ -23,8 +23,11 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker Image
-        run: docker build -t guorbit/orbit-software-base:py3.10-tf2.13-utils0.1 .
+        run: docker build -t guorbit/orbit-software-base:latest .
         working-directory: .\image_files\software-base\
+        
+      - name: Tag Docker Image
+        run: docker tag guorbit/orbit-software-base:latest guorbit/orbit-software-base:py3.10-tf2.13-utils0.1
 
       - name: Push Docker Image
-        run: docker push guorbit/orbit-software-base:py3.10-tf2.13-utils0.1
+        run: docker push guorbit/orbit-software-base:latest 
