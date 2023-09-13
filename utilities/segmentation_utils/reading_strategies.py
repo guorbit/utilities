@@ -1,7 +1,7 @@
 import os
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Protocol
+from typing import Any, Protocol, Union
 
 import cv2
 import numpy as np
@@ -298,16 +298,23 @@ class RasterImageStrategy:
         image_size: tuple[int, int],
         image_resample=Image.Resampling.NEAREST,
         package: Any = rasterio,
+        bands_enabled: Union[list[bool],object] = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.image_size = image_size
         self.image_resample = image_resample
         self.package = package
+        
         # gets the number of bands for the dataset
         self.bands = package.open(
             os.path.join(self.image_path, self.image_filenames[0])
         ).count
+        if bands_enabled is None:
+            self.bands_enabled = [True] * self.bands
+        else:
+            self.bands_enabled = bands_enabled
+       
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         # read images with rasterio
@@ -321,6 +328,12 @@ class RasterImageStrategy:
         )
         for i, filename in enumerate(batch_filenames):
             with self.package.open(os.path.join(self.image_path, filename)) as dataset:
+                for j in range(self.bands):
+                    if not self.bands_enabled[j]:
+                        continue
+                    image = dataset.read(j + 1)
+                    image = np.resize(image, self.image_size)
+                    images[i, j, :, :] = image
                 # .read() returns a numpy array that contains the raster cell values in your file.
                 image = dataset.read()
             images[i, :, :, :] = np.resize(image, (self.bands, *self.image_size))
@@ -358,6 +371,7 @@ class RasterImageStrategyMultiThread:
         image_resample=Image.Resampling.NEAREST,
         max_workers: int = 8,
         package: Any = rasterio,
+        bands_enabled: Union[list[bool],object] = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
@@ -369,14 +383,26 @@ class RasterImageStrategyMultiThread:
         self.bands = package.open(
             os.path.join(self.image_path, self.image_filenames[0])
         ).count
+        if bands_enabled is None:
+            self.bands_enabled = [True] * self.bands
+        else:
+            self.bands_enabled = np.array(bands_enabled)
+        
+        self.n_enabled = sum(self.bands_enabled)
 
     def __read_single_image(
         self, filename: str, package: Any, image_size: tuple[int, int, int]
     ) -> np.ndarray:
+        image = np.zeros((self.bands, *image_size[1:None]))
         with package.open(filename) as dataset:
-            image = dataset.read()
-        resized_image = np.resize(image, image_size)
-        return resized_image
+            for j in range(self.bands):
+                if not self.bands_enabled[j]:
+                    continue
+                band = dataset.read(j + 1)
+                band = np.resize(band, image_size)
+                image[j, :, :] = band
+
+        return image
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         batch_filenames = [
@@ -385,10 +411,10 @@ class RasterImageStrategyMultiThread:
                 dataset_index : dataset_index + batch_size
             ]
         ]
-
+        
         # Pre-allocate memory
         images = np.zeros(
-            (batch_size, self.bands, self.image_size[0], self.image_size[1])
+            (batch_size, self.n_enabled , self.image_size[0], self.image_size[1])
         )
 
         # Use ThreadPoolExecutor.map for more efficient multi-threading
