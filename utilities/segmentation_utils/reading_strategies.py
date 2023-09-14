@@ -393,7 +393,7 @@ class RasterImageStrategyMultiThread:
     def __read_single_image(
         self, filename: str, package: Any, image_size: tuple[int, int, int]
     ) -> np.ndarray:
-        image = np.zeros((self.bands, *image_size[1:None]))
+        image = np.zeros((self.n_enabled, *image_size[1:None]))
         with package.open(filename) as dataset:
             for j in range(self.bands):
                 if not self.bands_enabled[j]:
