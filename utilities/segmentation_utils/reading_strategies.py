@@ -399,7 +399,7 @@ class RasterImageStrategyMultiThread:
                 if not self.bands_enabled[j]:
                     continue
                 band = dataset.read(j + 1)
-                band = np.resize(band, image_size)
+                band = np.resize(band, image_size[1:None])
                 image[j, :, :] = band
 
         return image
