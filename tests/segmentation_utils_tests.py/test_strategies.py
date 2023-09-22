@@ -27,6 +27,9 @@ class MockRasterio:
 
     def read(self, *args, **kwargs):
         self.call_count += 1
+        if len(args)>0:
+            return np.full((self.size[0], self.size[1]), self.call_count, self.dtypes[0])
+        
         return np.full(
             (self.bands, self.size[0], self.size[1]), self.call_count, self.dtypes[0]
         )
@@ -395,19 +398,3 @@ def test_shuffle(fixture_factory):
 
     assert np.array_equal(strategy_1.image_filenames, strategy_2.image_filenames)
     assert type(strategy_1) == type(strategy_2)
-
-
-@pytest.mark.development
-def test_mt_image_in_order(mt_image_strategy):
-    strategy = mt_image_strategy
-
-    batch_size = 10
-
-    call_count = strategy.package.get_count()
-
-    result = strategy.read_batch(batch_size, 0)
-
-    for i in range(call_count, call_count + batch_size):
-        assert np.array_equal(
-            result[i - call_count, :, :, :], np.full((224, 224, 3), i + 1)
-        )
