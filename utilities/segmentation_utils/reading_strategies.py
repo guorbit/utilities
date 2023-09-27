@@ -467,7 +467,7 @@ class BatchReaderStrategy:
 
         # Read the second row for batch_size
         batch_size = df.iloc[1][0]
-        
+
         self.ex_batch_size = batch_size
         self.dataset_size = n_image
         # last batch of the dataset
@@ -476,12 +476,14 @@ class BatchReaderStrategy:
 
         self.image_size = image_size
         self.package = package
+        self.bands_enabled = bands_enabled
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         idx = dataset_index // self.ex_batch_size
         images = np.load(os.path.join(self.image_path, "batch_{}.npy".format(idx)))
+        images = images[:, :, :, self.bands_enabled]
         if idx == self.last_batch_idx:
-            return images[: batch_size]
+            return images[:batch_size, ...]
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
