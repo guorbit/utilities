@@ -1,10 +1,12 @@
 import os
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import Any, Protocol, Union
 
 import cv2
 import numpy as np
+import pandas as pd
 import rasterio
 from PIL import Image
 
@@ -298,14 +300,14 @@ class RasterImageStrategy:
         image_size: tuple[int, int],
         image_resample=Image.Resampling.NEAREST,
         package: Any = rasterio,
-        bands_enabled: Union[list[bool],object] = None,
+        bands_enabled: Union[list[bool], object] = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
         self.image_size = image_size
         self.image_resample = image_resample
         self.package = package
-        
+
         # gets the number of bands for the dataset
         self.bands = package.open(
             os.path.join(self.image_path, self.image_filenames[0])
@@ -314,7 +316,6 @@ class RasterImageStrategy:
             self.bands_enabled = [True] * self.bands
         else:
             self.bands_enabled = bands_enabled
-       
 
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         # read images with rasterio
@@ -371,7 +372,7 @@ class RasterImageStrategyMultiThread:
         image_resample=Image.Resampling.NEAREST,
         max_workers: int = 8,
         package: Any = rasterio,
-        bands_enabled: Union[list[bool],object] = None,
+        bands_enabled: Union[list[bool], object] = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
@@ -387,7 +388,7 @@ class RasterImageStrategyMultiThread:
             self.bands_enabled = [True] * self.bands
         else:
             self.bands_enabled = np.array(bands_enabled)
-        
+
         self.n_enabled = sum(self.bands_enabled)
 
     def __read_single_image(
@@ -411,10 +412,10 @@ class RasterImageStrategyMultiThread:
                 dataset_index : dataset_index + batch_size
             ]
         ]
-        
+
         # Pre-allocate memory
         images = np.zeros(
-            (batch_size, self.n_enabled , self.image_size[0], self.image_size[1])
+            (batch_size, self.n_enabled, self.image_size[0], self.image_size[1])
         )
 
         # Use ThreadPoolExecutor.map for more efficient multi-threading
@@ -446,3 +447,49 @@ class RasterImageStrategyMultiThread:
         shuffled_indices = state.permutation(len(self.image_filenames))
         shuffled_indices = shuffled_indices.astype(int)
         self.image_filenames = self.image_filenames[shuffled_indices]
+
+
+class BatchReaderStrategy:
+    def __init__(
+        self,
+        image_path: str,
+        image_size: tuple[int, int],
+        package: Any = np,
+        bands_enabled: Union[list[bool], object] = None,
+    ) -> None:
+        self.image_path = image_path
+        meta_path = os.path.abspath(os.path.join(image_path, os.pardir))
+
+        # Read the info.csv file containing number of images and batch size the data was processed at
+        df = pd.read_csv(os.path.join(meta_path, "info.csv"))
+        # Read the first row for n_image
+        n_image = df.iloc[0][0]
+
+        # Read the second row for batch_size
+        batch_size = df.iloc[1][0]
+        
+        self.ex_batch_size = batch_size
+        self.dataset_size = n_image
+        # last batch of the dataset
+        self.last_batch_idx = n_image // batch_size
+        self.dataset_idxs = np.arange(self.last_batch_idx + 1)
+
+        self.image_size = image_size
+        self.package = package
+
+    def read_batch(self, batch_size, dataset_index) -> np.ndarray:
+        idx = dataset_index // self.ex_batch_size
+        images = np.load(os.path.join(self.image_path, "batch_{}.npy".format(idx)))
+        if idx == self.last_batch_idx:
+            return images[: batch_size]
+        return images
+
+    def get_dataset_size(self, mini_batch) -> int:
+        return int(np.floor(self.dataset_size / float(mini_batch)))
+
+    def get_image_size(self) -> tuple[int, int]:
+        return self.image_size
+
+    def shuffle_filenames(self, seed: int) -> None:
+        state = np.random.RandomState(seed)
+        state.shuffle(self.dataset_idxs)
