@@ -369,7 +369,7 @@ class FlowGeneratorExperimental(Sequence):
         )
 
         # preprocess and assign images and masks to the batch
-
+        print("Read Images shape: ",batch_images.shape)
         if self.preprocessing_enabled:
             for i in range(adjusted_batch_size):
                 image = batch_images[i, ...]
