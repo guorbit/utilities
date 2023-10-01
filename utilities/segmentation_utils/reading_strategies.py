@@ -481,10 +481,11 @@ class BatchReaderStrategy:
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         idx = dataset_index // self.ex_batch_size
         images = np.load(os.path.join(self.image_path, "batch_{}.npy".format(idx)))
+        print(images.shape)
         images = images[:, :, :, self.bands_enabled]
         print(images.shape)
-        if idx == self.last_batch_idx:
-            print("last batch")
+        if idx == self.last_batch_idx and images.shape[0] != batch_size:
+            print("last irregular batch")
             return images[:batch_size, ...]
         return images
 
