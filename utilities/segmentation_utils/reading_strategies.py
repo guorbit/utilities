@@ -476,12 +476,15 @@ class BatchReaderStrategy:
 
         self.image_size = image_size
         self.package = package
+
         self.bands_enabled = bands_enabled
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         idx = dataset_index // self.ex_batch_size
         images = np.load(os.path.join(self.image_path, "batch_{}.npy".format(idx)))
         print(images.shape)
+        if self.bands_enabled is None:
+            self.bands_enabled = [True] * images.shape[-1]
         images = images[:, :, :, self.bands_enabled]
         print(images.shape)
         if idx == self.last_batch_idx and images.shape[0] != batch_size:
