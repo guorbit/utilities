@@ -463,6 +463,7 @@ class BatchReaderStrategy:
         # Read the info.csv file containing number of images and batch size the data was processed at
         df = pd.read_csv(os.path.join(meta_path, "info.csv"))
         # Read the first row for n_image
+        print(df)
         n_image = df.iloc[0][0]
 
         # Read the second row for batch_size
