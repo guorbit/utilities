@@ -392,7 +392,7 @@ class FlowGeneratorExperimental(Sequence):
                 )
                 batch_images[i, ...] = image
                 batch_masks[i, ...] = mask
-
+        tf.print("Read Images shape: ",batch_images.shape)
         batch_images = tf.reshape(
             batch_images,
             (
@@ -403,6 +403,7 @@ class FlowGeneratorExperimental(Sequence):
                 self.n_channels,
             ),
         )
+        tf.print("reshape images shape: ",batch_images.shape)
 
         if self.type[1] == FileType.GRAYSCALE:
             batch_masks = ImagePreprocessor.onehot_encode(batch_masks, self.num_classes)
@@ -432,6 +433,8 @@ class FlowGeneratorExperimental(Sequence):
         # chaches the batch
         self.image_batch_store = batch_images
         self.mask_batch_store = batch_masks
+
+        tf.print("batch images shape: ",self.image_batch_store.shape)
 
         # required to check when to read the next batch
 
