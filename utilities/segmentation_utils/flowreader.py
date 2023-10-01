@@ -358,6 +358,8 @@ class FlowGeneratorExperimental(Sequence):
         # compare and choose the smaller value, to avoid making a larger batch_size
         adjusted_batch_size = min(self.batch_size, partial_dataset)
 
+        print("Adjusted batch size: ", adjusted_batch_size)
+
         # calculate number of mini batches in a batch
         n = adjusted_batch_size // self.mini_batch
 
