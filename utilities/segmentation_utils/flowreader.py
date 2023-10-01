@@ -406,7 +406,7 @@ class FlowGeneratorExperimental(Sequence):
             ),
         )
         tf.print("reshape images shape: ",batch_images.shape)
-
+        tf.print("mask shape: ",batch_masks.shape)
         if self.type[1] == FileType.GRAYSCALE:
             batch_masks = ImagePreprocessor.onehot_encode(batch_masks, self.num_classes)
             batch_masks = tf.reshape(
