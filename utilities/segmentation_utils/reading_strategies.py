@@ -482,11 +482,14 @@ class BatchReaderStrategy:
         idx = dataset_index // self.ex_batch_size
         images = np.load(os.path.join(self.image_path, "batch_{}.npy".format(idx)))
         images = images[:, :, :, self.bands_enabled]
+        print(images.shape)
         if idx == self.last_batch_idx:
+            print("last batch")
             return images[:batch_size, ...]
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
+        print(self.dataset_size)
         return int(np.floor(self.dataset_size / float(mini_batch)))
 
     def get_image_size(self) -> tuple[int, int]:
