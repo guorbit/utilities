@@ -12,3 +12,16 @@ class ImageOrdering(Enum):
     """
     CHANNEL_FIRST = 1
     CHANNEL_LAST = 2
+
+
+class FileType(Enum):
+    """
+    Enum class for image type
+
+    Available options
+    -----------------
+    :GRAYSCALE: grayscale image
+    :MULTICHANNEL: multichannel image
+    """
+    GRAYSCALE = 1
+    MULTICHANNEL = 2
