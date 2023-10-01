@@ -416,7 +416,7 @@ class FlowGeneratorExperimental(Sequence):
                     self.num_classes,
                 ),
             )
-        else:
+        elif self.type[1] == FileType.MULTICHANNEL:
             batch_masks = tf.reshape(
                 batch_masks,
                 (
@@ -452,7 +452,7 @@ class FlowGeneratorExperimental(Sequence):
         store_index = (self.batch_size // self.mini_batch) - (
             self.validity_index - index
         )
-
+        tf.print(self.image_batch_store)
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
 
