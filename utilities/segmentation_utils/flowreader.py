@@ -262,7 +262,7 @@ class FlowGeneratorExperimental(Sequence):
         output_strategy: IReader,
         channel_mask: list[bool],
         num_classes: int,
-        type:list[FileType] = [FileType.MULTICHANNEL, FileType.GRAYSCALE],
+        type: list[FileType] = [FileType.MULTICHANNEL, FileType.GRAYSCALE],
         shuffle: bool = True,
         batch_size: int = 2,
         preprocessing_enabled: bool = True,
@@ -358,8 +358,6 @@ class FlowGeneratorExperimental(Sequence):
         # compare and choose the smaller value, to avoid making a larger batch_size
         adjusted_batch_size = min(self.batch_size, partial_dataset)
 
-        print("Adjusted batch size: ", adjusted_batch_size)
-
         # calculate number of mini batches in a batch
         n = adjusted_batch_size // self.mini_batch
 
@@ -371,7 +369,6 @@ class FlowGeneratorExperimental(Sequence):
         )
 
         # preprocess and assign images and masks to the batch
-        print("Read Images shape: ",batch_images.shape)
         if self.preprocessing_enabled:
             for i in range(adjusted_batch_size):
                 image = batch_images[i, ...]
@@ -394,7 +391,7 @@ class FlowGeneratorExperimental(Sequence):
                 )
                 batch_images[i, ...] = image
                 batch_masks[i, ...] = mask
-        tf.print("Read Images shape: ",batch_images.shape)
+
         batch_images = tf.reshape(
             batch_images,
             (
@@ -405,8 +402,7 @@ class FlowGeneratorExperimental(Sequence):
                 self.n_channels,
             ),
         )
-        tf.print("reshape images shape: ",batch_images.shape)
-        tf.print("mask shape: ",batch_masks.shape)
+
         if self.type[1] == FileType.GRAYSCALE:
             batch_masks = ImagePreprocessor.onehot_encode(batch_masks, self.num_classes)
             batch_masks = tf.reshape(
@@ -430,13 +426,10 @@ class FlowGeneratorExperimental(Sequence):
                     self.n_channels,
                 ),
             )
-        
 
         # chaches the batch
         self.image_batch_store = batch_images
         self.mask_batch_store = batch_masks
-
-        tf.print("batch images shape: ",self.image_batch_store.shape)
 
         # required to check when to read the next batch
 
@@ -457,7 +450,7 @@ class FlowGeneratorExperimental(Sequence):
         store_index = (self.batch_size // self.mini_batch) - (
             self.validity_index - index
         )
-        tf.print(self.image_batch_store)
+
         batch_images = self.image_batch_store[store_index, ...]  # type: ignore
         batch_masks = self.mask_batch_store[store_index, ...]  # type: ignore
 

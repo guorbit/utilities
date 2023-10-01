@@ -463,9 +463,9 @@ class BatchReaderStrategy:
         # Read the info.csv file containing number of images and batch size the data was processed at
         df = pd.read_csv(os.path.join(meta_path, "info.csv"), index_col=0)
         # Read the first row for n_image
-        print(df)
+
         n_image = df.iloc[0][0]
-        
+
         # Read the second row for batch_size
         batch_size = df.iloc[1][0]
 
@@ -483,18 +483,17 @@ class BatchReaderStrategy:
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         idx = dataset_index // self.ex_batch_size
         images = np.load(os.path.join(self.image_path, "batch_{}.npy".format(idx)))
-        print(images.shape)
+
         if self.bands_enabled is None:
             self.bands_enabled = [True] * images.shape[-1]
         images = images[:, :, :, self.bands_enabled]
-        print(images.shape)
+
         if idx == self.last_batch_idx and images.shape[0] != batch_size:
             print("last irregular batch")
             return images[:batch_size, ...]
         return images
 
     def get_dataset_size(self, mini_batch) -> int:
-        print(self.dataset_size)
         return int(np.floor(self.dataset_size / float(mini_batch)))
 
     def get_image_size(self) -> tuple[int, int]:
