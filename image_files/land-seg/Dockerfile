@@ -43,7 +43,7 @@ RUN $PIP_INSTALL \
     numpy==1.23.4 \
     pandas==1.5.0 \
     matplotlib==3.6.1 \
-    ipython==8.5.0 \
+    ipython==8.5 \
     ipykernel==6.16.0 \
     ipywidgets==8.0.2 \
     tqdm==4.64.1 \
