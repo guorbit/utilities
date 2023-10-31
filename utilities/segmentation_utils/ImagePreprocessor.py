@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Callable, Protocol
-
+from typing import Callable, Protocol, Any
+from numpy.typing import NDArray
 import numpy as np
-import tensorflow as tf
 
 
 class IPreprocessor(Protocol):
@@ -27,7 +26,7 @@ class PreFunction:
     Class that wraps a function and its arguments to be used in a preprocessing queue
     enables function to be defined with their parameters prior to being called.
 
-    To call the function, simply call the PreFunction object with a tf.Tensor as an argument
+    To call the function, simply call the PreFunction object with a NDArray[Any] as an argument
 
     Parameters
     ----------
@@ -41,7 +40,7 @@ class PreFunction:
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, image: tf.Tensor) -> tf.Tensor:
+    def __call__(self, image: NDArray[Any]) -> NDArray[Any]:
         return self.function(image, *self.args, **self.kwargs)
 
     def set_seed(self, seed: int) -> None:
@@ -107,9 +106,10 @@ def generate_image_queue(seed=0) -> PreprocessingQueue:
         [
             PreFunction(random_flip_left_right, seed=seed),
             PreFunction(random_flip_up_down, seed=seed),
-            PreFunction(tf.image.random_brightness, max_delta=0.2, seed=seed),
-            PreFunction(tf.image.random_contrast, lower=0.8, upper=1.2, seed=seed),
-            PreFunction(tf.image.random_saturation, lower=0.8, upper=1.2, seed=seed),
+            # TODO: The functions below require a version that is run on np
+            # PreFunction(tf.image.random_brightness, max_delta=0.2, seed=seed),
+            # PreFunction(tf.image.random_contrast, lower=0.8, upper=1.2, seed=seed),
+            # PreFunction(tf.image.random_saturation, lower=0.8, upper=1.2, seed=seed),
         ],
     )
     return image_queue
@@ -154,24 +154,23 @@ def generate_default_queue(seed=0) -> tuple[PreprocessingQueue, PreprocessingQue
     return image_queue, mask_queue
 
 
-def onehot_encode(masks, num_classes) -> tf.Tensor:
+def onehot_encode(masks, num_classes) -> NDArray[Any]:
     """
     Function that one-hot encodes masks
 
-    :batch(tf.Tensor) masks: Masks to be encoded
+    :NDArray[Any] masks: Masks to be encoded
     :tuple(int, int) output_size: Output size of the masks
     :int num_classes: Number of classes in the masks
 
     Returns
     -------
-    :return tf.Tensor: Batch of one-hot encoded masks
+    :return NDArray[Any]: Batch of one-hot encoded masks
     """
     #!TODO: add support for 1D masks
     encoded = np.zeros((masks.shape[0], masks.shape[1], masks.shape[2], num_classes))
     for i in range(num_classes):
         mask = (masks == i).astype(float)
         encoded[:, :, :, i] = mask
-    encoded = tf.convert_to_tensor(encoded)
     return encoded
 
 
@@ -181,7 +180,7 @@ def augmentation_pipeline(
     image_queue: PreprocessingQueue,
     mask_queue: PreprocessingQueue,
     seed: int = 0,
-) -> tuple[tf.Tensor, tf.Tensor]:
+) -> tuple[NDArray[Any], NDArray[Any]]:
     """
     Function that can execute a set of predifined augmentation functions
     stored in a PreprocessingQueue object. It augments both the image and the mask
@@ -189,8 +188,8 @@ def augmentation_pipeline(
 
     Parameters
     ----------
-    :tf.Tensor image: The image to be processed
-    :tf.Tensor mask: The mask to be processed
+    :NDArray[Any] image: The image to be processed
+    :NDArray[Any] The mask to be processed
 
 
     Keyword Arguments
@@ -205,9 +204,9 @@ def augmentation_pipeline(
 
     Returns
     -------
-    :return tuple(tf.Tensor, tf.Tensor): tuple of the processed image and mask
+    :return tuple(NDArray[Any], NDArray[Any]): tuple of the processed image and mask
     """
-    mask = tf.expand_dims(mask, axis=-1)
+    mask = np.expand_dims(mask, axis=-1)
 
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
@@ -216,22 +215,20 @@ def augmentation_pipeline(
         image = fun_im(image)
         mask = fun_mask(mask)
 
+    mask = np.squeeze(mask, axis=-1) # removes the last dimension
 
-
-    mask = tf.squeeze(mask, axis=-1) # removes the last dimension
-    mask = tf.convert_to_tensor(mask)
     # image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
 
     return image, mask
 
 
-def flatten(image, input_size, channels=1) -> tf.Tensor:
+def flatten(image, input_size, channels=1) -> NDArray[Any]:
     """flatten
     Function that flattens an image preserving the number of channels
 
     Parameters
     ----------
-    :tf.Tensor image: image to be flattened
+    :NDArray[Any] image: image to be flattened
     :tuple(int, int) input_size: input size of the image
 
     Keyword Arguments
@@ -240,51 +237,50 @@ def flatten(image, input_size, channels=1) -> tf.Tensor:
 
     Returns
     -------
-    :return tf.Tensor: flattened image
+    :return NDArray[Any]: flattened image
     """
     # the 1 is required to preserve the shape similar to the original
-    return tf.convert_to_tensor(
-        tf.reshape(image, (input_size[0] * input_size[1], channels))
-    )
+    return np.reshape(image, (input_size[0] * input_size[1], channels))
 
 
-def random_flip_up_down(image, seed=0) -> tf.Tensor:
+
+def random_flip_up_down(image, seed=0) -> NDArray[Any]:
     """
     Function that randomly flips an image up or down
 
     Parameters
     ----------
-    :tf.Tensor image: image to be flipped
+    :NDArray[Any] image: image to be flipped
 
     Returns
     -------
-    :return tf.Tensor: flipped image
+    :return NDArray[Any]: flipped image
     """
 
     state = np.random.RandomState(seed)
     flip = state.choice([True, False])
     if flip:
-        return tf.convert_to_tensor(tf.image.flip_up_down(image))
+        return np.flip(image,axis=0)
     else:
         return image
 
 
-def random_flip_left_right(image, seed=0) -> tf.Tensor:
+def random_flip_left_right(image, seed=0) -> NDArray[Any]:
     """
     Function that randomly flips an image left or right
 
     Parameters
     ----------
-    :tf.Tensor image: image to be flipped
+    :NDArray[Any] image: image to be flipped
 
     Returns
     -------
-    :return tf.Tensor: flipped image
+    :return NDArray[Any]: flipped image
     """
 
     state = np.random.RandomState(seed)
     flip = state.choice([True, False])
     if flip:
-        return tf.convert_to_tensor(tf.image.flip_left_right(image))
+        return np.flip(image,axis=1)
     else:
         return image

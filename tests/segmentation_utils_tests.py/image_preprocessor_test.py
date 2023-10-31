@@ -83,8 +83,7 @@ def test_image_augmentation_pipeline_squarematrix() -> None:
         image_queue=image_queue,
         mask_queue=mask_queue,
     )
-    image_new = image_new.numpy()
-    mask_new = mask_new.numpy()
+
 
     assert image_new.shape == (512, 512, 3)
     assert mask_new.shape == (256, 256, 1)
@@ -108,7 +107,7 @@ def test_generate_default_queue() -> None:
     image_queue, mask_queue = ImagePreprocessor.generate_default_queue()
 
     
-    assert image_queue.get_queue_length() == 5
+    assert image_queue.get_queue_length() == 2
     assert mask_queue.get_queue_length() == 2
 
 @pytest.mark.development
@@ -116,5 +115,5 @@ def test_flatten() -> None:
     image = np.zeros((512, 512, 3))
     image = tf.convert_to_tensor(image)
     image = ImagePreprocessor.flatten(image, (512, 512), 3)
-    image = image.numpy()
+
     assert image.shape == (512 * 512, 3)
