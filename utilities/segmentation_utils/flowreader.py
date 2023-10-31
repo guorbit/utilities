@@ -12,7 +12,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.utils import Sequence
 
 from utilities.segmentation_utils import ImagePreprocessor
-from utilities.segmentation_utils.constants import ImageOrdering
+from utilities.segmentation_utils.constants import FileType, ImageOrdering
 from utilities.segmentation_utils.ImagePreprocessor import IPreprocessor
 from utilities.segmentation_utils.reading_strategies import IReader
 
@@ -262,6 +262,7 @@ class FlowGeneratorExperimental(Sequence):
         output_strategy: IReader,
         channel_mask: list[bool],
         num_classes: int,
+        type: list[FileType] = [FileType.MULTICHANNEL, FileType.GRAYSCALE],
         shuffle: bool = True,
         batch_size: int = 2,
         preprocessing_enabled: bool = True,
@@ -278,6 +279,7 @@ class FlowGeneratorExperimental(Sequence):
         self.mini_batch = batch_size
         self.image_size = input_strategy.get_image_size()
         self.output_size = output_strategy.get_image_size()
+        self.type = type
         self.channel_mask = np.array(channel_mask)
         self.n_channels = np.sum(channel_mask)
         self.num_classes = num_classes
@@ -367,7 +369,6 @@ class FlowGeneratorExperimental(Sequence):
         )
 
         # preprocess and assign images and masks to the batch
-
         if self.preprocessing_enabled:
             for i in range(adjusted_batch_size):
                 image = batch_images[i, ...]
@@ -391,8 +392,6 @@ class FlowGeneratorExperimental(Sequence):
                 batch_images[i, ...] = image
                 batch_masks[i, ...] = mask
 
-        batch_masks = ImagePreprocessor.onehot_encode(batch_masks, self.num_classes)
-
         batch_images = tf.reshape(
             batch_images,
             (
@@ -403,16 +402,30 @@ class FlowGeneratorExperimental(Sequence):
                 self.n_channels,
             ),
         )
-        batch_masks = tf.reshape(
-            batch_masks,
-            (
-                n,
-                self.mini_batch,
-                self.output_size[0],
-                self.output_size[1],
-                self.num_classes,
-            ),
-        )
+
+        if self.type[1] == FileType.GRAYSCALE:
+            batch_masks = ImagePreprocessor.onehot_encode(batch_masks, self.num_classes)
+            batch_masks = tf.reshape(
+                batch_masks,
+                (
+                    n,
+                    self.mini_batch,
+                    self.output_size[0],
+                    self.output_size[1],
+                    self.num_classes,
+                ),
+            )
+        elif self.type[1] == FileType.MULTICHANNEL:
+            batch_masks = tf.reshape(
+                batch_masks,
+                (
+                    n,
+                    self.mini_batch,
+                    self.output_size[0],
+                    self.output_size[1],
+                    self.n_channels,
+                ),
+            )
 
         # chaches the batch
         self.image_batch_store = batch_images
