@@ -206,7 +206,8 @@ def augmentation_pipeline(
     -------
     :return tuple(NDArray[Any], NDArray[Any]): tuple of the processed image and mask
     """
-    mask = np.expand_dims(mask, axis=-1)
+    if mask.shape[-1] == 1 or len(mask.shape) == 2:
+        mask = np.expand_dims(mask, axis=-1)
 
     image_queue.update_seed(seed)
     mask_queue.update_seed(seed)
