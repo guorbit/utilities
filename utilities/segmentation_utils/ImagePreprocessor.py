@@ -216,7 +216,9 @@ def augmentation_pipeline(
         image = fun_im(image)
         mask = fun_mask(mask)
 
-    mask = np.squeeze(mask, axis=-1) # removes the last dimension
+    if mask.shape[-1] == 1:
+        mask = np.squeeze(mask, axis=-1)
+    # mask = np.squeeze(mask, axis=-1) # removes the last dimension
 
     # image = tf.convert_to_tensor(tf.clip_by_value(image, 0, 1))
 
