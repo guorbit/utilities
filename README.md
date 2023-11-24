@@ -1,6 +1,12 @@
-![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/python-app.yml/badge.svg?branch=main) [![codecov](https://codecov.io/github/guorbit/utilities/branch/main/graph/badge.svg?token=3RVZAHQ4W2)](https://codecov.io/github/guorbit/utilities)
 
-![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/python-app.yml/badge.svg?branch=development)
+ [![codecov](https://codecov.io/github/guorbit/utilities/branch/main/graph/badge.svg?token=3RVZAHQ4W2)](https://codecov.io/github/guorbit/utilities) ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/docker.yml/badge.svg) ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/stable_push.yml/badge.svg) 
+
+| Branch pipeline status                                                                                                           |
+|----------------------------------------------------------------------------------------------------------------------------------|
+| ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/master.yml/badge.svg?branch=main)             |
+| ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/staging.yml/badge.svg?branch=staging)         |
+| ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/development.yml/badge.svg?branch=development) |
+
 
 Note before installation: None of these commands have been properly tested. Make sure you installed the package in a virtual environment.
 
