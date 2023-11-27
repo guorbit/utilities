@@ -1,6 +1,12 @@
-![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/python-app.yml/badge.svg?branch=main) [![codecov](https://codecov.io/github/guorbit/utilities/branch/main/graph/badge.svg?token=3RVZAHQ4W2)](https://codecov.io/github/guorbit/utilities)
 
-![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/python-app.yml/badge.svg?branch=development)
+ [![codecov](https://codecov.io/github/guorbit/utilities/branch/main/graph/badge.svg?token=3RVZAHQ4W2)](https://codecov.io/github/guorbit/utilities) ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/docker.yml/badge.svg) ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/stable_push.yml/badge.svg) 
+
+| Branch pipeline status                                                                                                           |
+|----------------------------------------------------------------------------------------------------------------------------------|
+| ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/master.yml/badge.svg?branch=main)             |
+| ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/staging.yml/badge.svg?branch=staging)         |
+| ![example branch parameter](https://github.com/guorbit/utilities/actions/workflows/development.yml/badge.svg?branch=development) |
+
 
 Note before installation: None of these commands have been properly tested. Make sure you installed the package in a virtual environment.
 
@@ -56,6 +62,29 @@ Development --------------------------/-------->
                  \-Feature branches-/
 
 ```
+### Dynamic backend
+The project for certain functionalities relies on a switchable/dynamic backend, provided in some cases hardware accelerated computing, or specialised functionalities for frameworks. 
+Available backends:
+- Tensorflow
+- Pytorch
+
+For this purpose exists the backends directory containing the code for the backends.
+The structure looks the following:
+```
+backends
+├── __init__.py
+├── tf                      <------- Defines implementation for tensorflow backend
+│   ├── __init__.py
+│   ├── somemodule.py
+├── torch                   <------- Defines implementation for pytorch backend
+│   ├── __init__.py
+│   ├── somemodule.py
+├── common                  <------- Defines the interface for the backends
+│   ├── __init__.py
+│   ├── somemodule.py
+```
+**Note:** The interfaces are never used directly however it provides structure for the backend implementations, such that it remains the same through all backends.\
+**Note:** In order for the dynamic backend to work properly the backends skeleton has to be identical.
 ### Testing
 To run the tests run the following command in the terminal:
 ```

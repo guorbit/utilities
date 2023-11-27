@@ -367,6 +367,8 @@ class FlowGeneratorExperimental(Sequence):
         batch_masks = self.output_strategy.read_batch(
             adjusted_batch_size, dataset_index
         )
+        batch_images = batch_images.astype(np.float32)
+        batch_masks = batch_masks.astype(np.float32)
 
         # preprocess and assign images and masks to the batch
         if self.preprocessing_enabled:
@@ -392,7 +394,7 @@ class FlowGeneratorExperimental(Sequence):
                 batch_images[i, ...] = image
                 batch_masks[i, ...] = mask
 
-        batch_images = tf.reshape(
+        batch_images = np.reshape(
             batch_images,
             (
                 n,
