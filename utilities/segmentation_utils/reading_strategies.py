@@ -1,7 +1,6 @@
 import os
 from concurrent import futures
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
 from typing import Any, Protocol, Union
 
 import cv2
@@ -17,6 +16,7 @@ class IReader(Protocol):
     flowgenerator dataset reader.
 
     """
+
     def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         """
         Function loads a batch of image filenames starting from the given dataset index
@@ -34,8 +34,8 @@ class IReader(Protocol):
 
     def get_dataset_size(self, minibatch: int) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image \
-        files from the target directory.
+        Calculates and returns the number of mini-batches that can be created from the \
+        available image files from the target directory.
 
         Parameters
         ----------
@@ -81,19 +81,19 @@ class RGBImageStrategy:
     """
 
     def __init__(
-        self,
-        image_path: str,
-        image_size: tuple[int, int],
-        image_resample:Image.Resampling=Image.Resampling.NEAREST,
+            self,
+            image_path: str,
+            image_size: tuple[int, int],
+            image_resample: Image.Resampling = Image.Resampling.NEAREST,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(
             sorted(os.listdir(self.image_path))
-        )  #!update: added variable to initialiser
+        )  # !update: added variable to initialiser
         self.image_size = image_size
         self.image_resample = image_resample
 
-    def read_batch(self, batch_size:int, dataset_index:int) -> np.ndarray:
+    def read_batch(self, batch_size: int, dataset_index: int) -> np.ndarray:
         """
         Function loads a batch of image filenames starting from the given dataset index and \
         returns a batch of images.
@@ -111,8 +111,8 @@ class RGBImageStrategy:
         """
         # read images with PIL
         batch_filenames = self.image_filenames[
-            dataset_index : dataset_index + batch_size
-        ]
+                          dataset_index: dataset_index + batch_size
+                          ]
 
         images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
         is_color = True
@@ -129,8 +129,8 @@ class RGBImageStrategy:
 
     def get_dataset_size(self, mini_batch) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image \
-        files from the target directory.
+        Calculates and returns the number of mini-batches that can be created from the \
+        available image files from the target directory.
 
         Parameters
         ----------
@@ -170,6 +170,7 @@ class RGBImageStrategy:
         shuffled_indices = shuffled_indices.astype(int)
         self.image_filenames = self.image_filenames[shuffled_indices]
 
+
 class RGBImageStrategyMultiThread:
     """
     Strategy optimized for reading RGB images powered by backend PIL.
@@ -190,16 +191,16 @@ class RGBImageStrategyMultiThread:
     """
 
     def __init__(
-        self,
-        image_path: str,
-        image_size: tuple[int, int],
-        image_resample:Image.Resampling=Image.Resampling.NEAREST,
-        max_workers: int = 8,
+            self,
+            image_path: str,
+            image_size: tuple[int, int],
+            image_resample: Image.Resampling = Image.Resampling.NEAREST,
+            max_workers: int = 8,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(
             sorted(os.listdir(self.image_path))
-        )  #!update: added variable to initialiser
+        )  # !update: added variable to initialiser
         self.image_size = image_size
         self.image_resample = image_resample
         self.max_workers = max_workers
@@ -242,8 +243,8 @@ class RGBImageStrategyMultiThread:
         to grayscale if needed.
         """
         batch_filenames = self.image_filenames[
-            dataset_index : dataset_index + batch_size
-        ]
+                          dataset_index: dataset_index + batch_size
+                          ]
 
         images = np.zeros((batch_size, self.image_size[0], self.image_size[1], 3))
         is_color = True
@@ -275,8 +276,8 @@ class RGBImageStrategyMultiThread:
 
     def get_dataset_size(self, mini_batch) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image \
-        files from the target directory.
+        Calculates and returns the number of mini-batches that can be created from the \
+        available image files from the target directory.
 
         Parameters
         ----------
@@ -333,7 +334,7 @@ class HSImageStrategy:
     """
 
     def __init__(
-        self, image_path: str, image_size: tuple[int, int], package: Any = None
+            self, image_path: str, image_size: tuple[int, int], package: Any = None
     ) -> None:
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
@@ -383,8 +384,8 @@ class HSImageStrategy:
 
         # Read images with OpenCV
         batch_filenames = self.image_filenames[
-            dataset_index : dataset_index + batch_size
-        ]
+                          dataset_index: dataset_index + batch_size
+                          ]
 
         for i in range(batch_size):
             image_path = os.path.join(self.image_path, batch_filenames[i])
@@ -403,8 +404,8 @@ class HSImageStrategy:
 
     def get_dataset_size(self, mini_batch) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image \
-        files from the target directory.
+        Calculates and returns the number of mini-batches that can be created from the \
+        available image files from the target directory.
 
         Parameters
         ----------
@@ -462,12 +463,13 @@ class HSImageStrategyMultiThread:
     :numpy.ndarray image_filenames: Array of image filenames obtained by sorting the list of files \
 
     """
+
     def __init__(
-        self,
-        image_path: str,
-        image_size: tuple[int, int],
-        package: Any = None,
-        max_workers: int = 8,
+            self,
+            image_path: str,
+            image_size: tuple[int, int],
+            package: Any = None,
+            max_workers: int = 8,
     ) -> None:
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
@@ -493,7 +495,7 @@ class HSImageStrategyMultiThread:
         return sample_image.shape[2] if len(sample_image.shape) == 3 else 1
 
     def __read_single_image(
-        self, filename: str, package: Any, image_size: tuple[int, int, int]
+            self, filename: str, package: Any, image_size: tuple[int, int, int]
     ) -> np.ndarray:
         """
         Function to read a single image using OpenCV and resize it to the specified image size.
@@ -539,8 +541,8 @@ class HSImageStrategyMultiThread:
 
         # Read images with OpenCV
         batch_filenames = self.image_filenames[
-            dataset_index : dataset_index + batch_size
-        ]
+                          dataset_index: dataset_index + batch_size
+                          ]
 
         image_paths = [
             os.path.join(self.image_path, batch_filenames[i]) for i in range(batch_size)
@@ -561,8 +563,8 @@ class HSImageStrategyMultiThread:
 
     def get_dataset_size(self, mini_batch) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image \
-        files from the target directory.
+        Calculates and returns the number of mini-batches that can be created from the \
+        available image files from the target directory.
 
         Parameters
         ----------
@@ -617,12 +619,12 @@ class RasterImageStrategy:
 
     # read images with rasterio
     def __init__(
-        self,
-        image_path: str,
-        image_size: tuple[int, int],
-        image_resample=Image.Resampling.NEAREST,
-        package: Any = None,
-        bands_enabled: Union[list[bool], object] = None,
+            self,
+            image_path: str,
+            image_size: tuple[int, int],
+            image_resample=Image.Resampling.NEAREST,
+            package: Any = None,
+            bands_enabled: Union[list[bool], object] = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
@@ -656,8 +658,8 @@ class RasterImageStrategy:
 
         # read images with rasterio
         batch_filenames = self.image_filenames[
-            dataset_index : dataset_index + batch_size
-        ]
+                          dataset_index: dataset_index + batch_size
+                          ]
 
         # defines the array that will contain the images
         images = np.zeros(
@@ -682,8 +684,8 @@ class RasterImageStrategy:
 
     def get_dataset_size(self, mini_batch) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image \
-        files from the target directory.
+        Calculates and returns the number of mini-batches that can be created from the \
+        available image files from the target directory.
 
         Parameters
         ----------
@@ -745,14 +747,14 @@ class RasterImageStrategyMultiThread:
 
     # read images with rasterio
     def __init__(
-        self,
-        image_path: str,
-        image_size: tuple[int, int],
-        image_resample=Image.Resampling.NEAREST,
-        max_workers: int = 8,
+            self,
+            image_path: str,
+            image_size: tuple[int, int],
+            image_resample=Image.Resampling.NEAREST,
+            max_workers: int = 8,
 
-        bands_enabled: Union[list[bool], object] = None,
-        package: Any = None,
+            bands_enabled: Union[list[bool], object] = None,
+            package: Any = None,
     ):
         self.image_path = image_path
         self.image_filenames = np.array(sorted(os.listdir(self.image_path)))
@@ -772,7 +774,7 @@ class RasterImageStrategyMultiThread:
         self.n_enabled = sum(self.bands_enabled)
 
     def __read_single_image(
-        self, filename: str, package: Any, image_size: tuple[int, int, int]
+            self, filename: str, package: Any, image_size: tuple[int, int, int]
     ) -> np.ndarray:
         """
         Function to read a single image using rasterio and resize it to the specified image size.
@@ -817,8 +819,8 @@ class RasterImageStrategyMultiThread:
         batch_filenames = [
             os.path.join(self.image_path, filename)
             for filename in self.image_filenames[
-                dataset_index : dataset_index + batch_size
-            ]
+                            dataset_index: dataset_index + batch_size
+                            ]
         ]
 
         # Pre-allocate memory
@@ -829,12 +831,12 @@ class RasterImageStrategyMultiThread:
         # Use ThreadPoolExecutor.map for more efficient multi-threading
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             for i, image in enumerate(
-                executor.map(
-                    self.__read_single_image,
-                    batch_filenames,
-                    [self.package] * batch_size,
-                    [(self.bands, *self.image_size)] * batch_size,
-                )
+                    executor.map(
+                        self.__read_single_image,
+                        batch_filenames,
+                        [self.package] * batch_size,
+                        [(self.bands, *self.image_size)] * batch_size,
+                    )
             ):
                 images[i, :, :, :] = image
 
@@ -845,8 +847,8 @@ class RasterImageStrategyMultiThread:
 
     def get_dataset_size(self, mini_batch) -> int:
         """
-        Calculates and returns the number of mini-batches that can be created from the available image \
-        files from the target directory.
+        Calculates and returns the number of mini-batches that can be created from the \
+        available image files from the target directory.
 
         Parameters
         ----------
@@ -888,16 +890,15 @@ class RasterImageStrategyMultiThread:
 
 class BatchReaderStrategy:
     def __init__(
-        self,
-        image_path: str,
-        image_size: tuple[int, int],
-        package: Any = np,
-        bands_enabled: Union[list[bool], object] = None,
+            self,
+            image_path: str,
+            image_size: tuple[int, int],
+            package: Any = np,
+            bands_enabled: Union[list[bool], object] = None,
     ) -> None:
         self.image_path = image_path
         meta_path = os.path.abspath(os.path.join(image_path, os.pardir))
 
-        # Read the info.csv file containing number of images and batch size the data was processed at
         df = pd.read_csv(os.path.join(meta_path, "info.csv"), index_col=0)
         # Read the first row for n_image
 
