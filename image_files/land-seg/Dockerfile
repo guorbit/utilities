@@ -35,10 +35,10 @@ RUN pip install --upgrade setuptools
 RUN $PIP_INSTALL install git+https://github.com/guorbit/utilities.git@development
 RUN $PIP_INSTALL \
     cython\
-    torch==2.0 \
+    torch==2.1.1 \
     torcheval==0.0.7\
-    scikit-learn==1.3 \
-    torchvision==0.15.2 \
+    scikit-learn==1.3.2 \
+    torchvision==0.16.1 \
     torchtext==0.15.0 \
     numpy==1.23.4 \
     pandas==1.5.0 \
@@ -53,7 +53,7 @@ RUN $PIP_INSTALL \
     jsonify==0.5 \
     wandb==0.13.4 \
     jupyterlab-snippets==0.4.1  \
-    boto3==1.28.70 \
+    boto3==1.33.0 \
     pytorch-msssim==1.0.0 \
     einops==0.7.0 \
     notebook==7.0.6
