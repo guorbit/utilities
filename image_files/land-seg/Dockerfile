@@ -56,6 +56,7 @@ RUN $PIP_INSTALL \
     boto3==1.28.70 \
     pytorch-msssim==1.0.0 \
     einops==0.7.0 \
+    notebook==7.0.6
 
 
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash  && \
