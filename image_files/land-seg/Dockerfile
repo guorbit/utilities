@@ -39,7 +39,6 @@ RUN $PIP_INSTALL \
     torcheval==0.0.7\
     scikit-learn==1.3.2 \
     torchvision==0.16.1 \
-    torchtext==0.15.0 \
     numpy==1.23.4 \
     pandas==1.5.0 \
     matplotlib==3.6.1 \
@@ -56,7 +55,7 @@ RUN $PIP_INSTALL \
     boto3==1.33.0 \
     pytorch-msssim==1.0.0 \
     einops==0.7.0 \
-    notebook==7.0.6
+    notebook==6.5.5
 
 
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash  && \
