@@ -32,7 +32,7 @@ RUN pip install --upgrade setuptools
 # Installing pip packages
 
 
-RUN $PIP_INSTALL install git+https://github.com/guorbit/utilities.git@dev_dataloader_filetype_ext
+RUN $PIP_INSTALL install git+https://github.com/guorbit/utilities.git@development
 RUN $PIP_INSTALL \
     cython\
     torch==2.0 \
