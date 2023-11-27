@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 @DeprecationWarning
 def image_cut_legacy(
-    image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1
+        image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1
 ) -> NDArray[Any]:
     """
     Takes an input image "image" and cuts into many images each of dimensions "cut_dims".
@@ -70,46 +70,46 @@ def image_cut_legacy(
     for y_ims in range(num_ims_y):
         for x_ims in range(num_ims_x):
             if (
-                x_ims == num_ims_x - 1
-                and y_ims != num_ims_y - 1
-                and edge_space != (0, 0)
+                    x_ims == num_ims_x - 1
+                    and y_ims != num_ims_y - 1
+                    and edge_space != (0, 0)
             ):
                 cut_ims[i, :, : edge_space[1], :] = image[
-                    y_ims * cut_dims[0] : (y_ims + 1) * cut_dims[0],
-                    x_ims * cut_dims[1] :,
-                    :,
-                ]
+                                                    y_ims * cut_dims[0]: (y_ims + 1) * cut_dims[0],
+                                                    x_ims * cut_dims[1]:,
+                                                    :,
+                                                    ]
             elif (
-                x_ims != num_ims_x - 1
-                and y_ims == num_ims_y - 1
-                and edge_space != (0, 0)
+                    x_ims != num_ims_x - 1
+                    and y_ims == num_ims_y - 1
+                    and edge_space != (0, 0)
             ):
                 cut_ims[i, : edge_space[0], :, :] = image[
-                    y_ims * cut_dims[0] :,
-                    x_ims * cut_dims[1] : (x_ims + 1) * cut_dims[1],
-                    :,
-                ]
+                                                    y_ims * cut_dims[0]:,
+                                                    x_ims * cut_dims[1]: (x_ims + 1) * cut_dims[1],
+                                                    :,
+                                                    ]
             elif (
-                x_ims == num_ims_x - 1
-                and y_ims == num_ims_y - 1
-                and edge_space != (0, 0)
+                    x_ims == num_ims_x - 1
+                    and y_ims == num_ims_y - 1
+                    and edge_space != (0, 0)
             ):
                 cut_ims[i, : edge_space[0], : edge_space[1], :] = image[
-                    y_ims * cut_dims[0] :, x_ims * cut_dims[1] :, :
-                ]
+                                                                  y_ims * cut_dims[0]:, x_ims * cut_dims[1]:, :
+                                                                  ]
             else:
                 cut_ims[i, :, :, :] = image[
-                    y_ims * cut_dims[0] : (y_ims + 1) * cut_dims[0],
-                    x_ims * cut_dims[1] : (x_ims + 1) * cut_dims[1],
-                    :,
-                ]
+                                      y_ims * cut_dims[0]: (y_ims + 1) * cut_dims[0],
+                                      x_ims * cut_dims[1]: (x_ims + 1) * cut_dims[1],
+                                      :,
+                                      ]
             i += 1
 
     return cut_ims
 
 
 def image_cut(
-    image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1, pad: bool = True
+        image: NDArray[Any], cut_dims: tuple[int, int], num_bands: int = 1, pad: bool = True
 ) -> NDArray[Any]:
     """
     Takes an input image "image" and cuts into many images each of dimensions "cut_dims".
@@ -165,10 +165,10 @@ def image_cut(
             cut_values[3] = cut_y - cut_values[2]
 
         image = image[
-            cut_values[0] : -cut_values[1] or None,
-            cut_values[2] : -cut_values[3] or None,
-            :,
-        ]
+                cut_values[0]: -cut_values[1] or None,
+                cut_values[2]: -cut_values[3] or None,
+                :,
+                ]
         return image
 
     if pad:
@@ -195,7 +195,7 @@ def image_cut(
 
 @DeprecationWarning
 def image_stich_legacy(
-    ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
+        ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
 ) -> NDArray[np.int16]:
     """Stiches input images "ims", into a single returned image.
     assumed layout of input images is [B, H, W, C].
@@ -233,25 +233,26 @@ def image_stich_legacy(
         for x_index in range(num_ims_x):
             if x_index == num_ims_x - 1 and y_index != num_ims_y - 1:
                 image[
-                    y_index * ims_shape[1] : (y_index + 1) * ims_shape[1],
-                    x_index * ims_shape[2] :,
-                    :,
+                y_index * ims_shape[1]: (y_index + 1) * ims_shape[1],
+                x_index * ims_shape[2]:,
+                :,
                 ] = ims[im_index, :, : edge_space[0], :]
             elif x_index != num_ims_x - 1 and y_index == num_ims_y - 1:
                 image[
-                    y_index * ims_shape[1] :,
-                    x_index * ims_shape[2] : (x_index + 1) * ims_shape[2],
-                    :,
+                y_index * ims_shape[1]:,
+                x_index * ims_shape[2]: (x_index + 1) * ims_shape[2],
+                :,
                 ] = ims[im_index, : edge_space[1], :, :]
             elif x_index == num_ims_x - 1 and y_index == num_ims_y - 1:
-                image[y_index * ims_shape[1] :, x_index * ims_shape[2] :, :] = ims[
-                    im_index, : edge_space[1], : edge_space[0], :
-                ]
+                image[y_index * ims_shape[1]:, x_index * ims_shape[2]:, :] = ims[
+                                                                             im_index, : edge_space[1], : edge_space[0],
+                                                                             :
+                                                                             ]
             else:
                 image[
-                    y_index * ims_shape[1] : (y_index + 1) * ims_shape[1],
-                    x_index * ims_shape[2] : (x_index + 1) * ims_shape[2],
-                    :,
+                y_index * ims_shape[1]: (y_index + 1) * ims_shape[1],
+                x_index * ims_shape[2]: (x_index + 1) * ims_shape[2],
+                :,
                 ] = ims[im_index, :, :, :]
             im_index += 1
 
@@ -259,7 +260,7 @@ def image_stich_legacy(
 
 
 def image_stich(
-    ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
+        ims: NDArray[np.int16], num_ims_x: int, num_ims_y: int, edge_space: tuple[int, int]
 ) -> NDArray[np.int16]:
     """Stiches input images "ims", into a single returned image.
     assumed layout of input images is [B, H, W, C].
@@ -290,7 +291,7 @@ def image_stich(
         black_space[0] // 2 - black_space[1],
         0,
     )
-    ims = ims[padding[0] : -padding[1] or None, padding[2] : -padding[3] or None, :]
+    ims = ims[padding[0]: -padding[1] or None, padding[2]: -padding[3] or None, :]
     return ims
 
 
@@ -315,14 +316,14 @@ def __preprocess_mask_image(mask_image) -> NDArray[np.int16]:
 
 
 def cut_ims_in_directory(
-    path_ims: str,
-    path_target_dir: str,
-    target_dims: tuple[int, int] = (512, 512),
-    mask=False,
-    preprocess: bool = False,
-    batch_size: int = 100,
-    format: str = "tiff",
-    preprocess_function=__preprocess_mask_image,
+        path_ims: str,
+        path_target_dir: str,
+        target_dims: tuple[int, int] = (512, 512),
+        mask=False,
+        preprocess: bool = False,
+        batch_size: int = 100,
+        format: str = "tiff",
+        preprocess_function=__preprocess_mask_image,
 ) -> None:
     """Finds images at "Path_ims" cuts them into dimension "target_dims",
     and then saves them as png files to "path_target_dir".
@@ -336,7 +337,7 @@ def cut_ims_in_directory(
     :bool, optional mask: If true assumes images are masks. Defaults to False.
     :bool, optional preprocess: If true preprocesses images. Defaults to False.
     """
-    
+
     dir_contents = os.listdir(path_ims)
     dir_contents = sorted(dir_contents)
     batch_size = 100
@@ -396,7 +397,7 @@ def cut_ims_in_directory(
 
         # save batch to disk
         if counter == batch_size - 1 or im_name == dir_contents[-1]:
-            print(f"Loaded {counter+1} images\nPerforming IO operations...")
+            print(f"Loaded {counter + 1} images\nPerforming IO operations...")
             batch = np.reshape(
                 batch,
                 (batch_size * cut_im.shape[0], target_dims[0], target_dims[1], channel),

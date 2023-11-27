@@ -1,3 +1,42 @@
 dl.py .field-list dt {
     text-transform: none !important;
 }
+
+.title-class {
+    font-size: 16px;
+}
+
+h1 {
+    font-size: 32px
+}
+
+h2 {
+    font-size: 24px;
+}
+.sidebar-search {
+
+    border-bottom: 0px !important;
+    border-top: 0px !important;
+}
+
+.sidebar-search-container {
+    background-color: #303030;
+    border-radius: .25rem;
+    margin-right: .5rem;
+    border-bottom: 0px;
+    border-top: 0px;
+}
+
+.sidebar-tree {
+    background-color: #303030;
+    border-radius: .25rem;
+    margin-right: .5rem;
+    border-bottom: 0px;
+    border-top: 0px;
+}
+
+
+
+#sidebar li.toctree-l1:not(.current){
+    display: none;
+  } 

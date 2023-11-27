@@ -218,23 +218,17 @@ class FlowGeneratorExperimental(Sequence):
     Additionally, the reader can apply augmentation on the images,
     and one-hot encode them on the fly.
     
-    Note: in case the output is a column vector it has to be in the shape (x, 1)
+    Note: in case the output is a column vector, the output strategy has to be set to \
+    a square matrix, and the is_column parameter has to be set to True
     Note: this is an experimental version of the flow generator, which uses a \
     custom implemented dataloader instead of the keras ImageDataGenerator
-    #TODO: Instead of using direct paths, and arguments, reading heads should be used
-    #TODO: as it reduces the number of arguments, and makes the code more readable and reduces
-    #TODO: cupling
 
     Parameters
     ----------
-    :string image: path to the image directory
-    :string mask: path to the mask directory
-    :int batch_size: 
-    :tuple image_size: specifies the size of the input image
-    :tuple output_size: specifies the size of the output mask
+    :IReader input_strategy: input reading strategy to be used
+    :IReader output_strategy: output reading strategy to be used
     :list[bool] channel_mask: specifies which channels of the input image to use
     :int num_classes: number of classes in the output mask
-
 
     Keyword Arguments
     -----------------
@@ -245,11 +239,9 @@ class FlowGeneratorExperimental(Sequence):
     :int preprocessing_seed: seed for preprocessing, defaults to None
     :preprocessing_queue_image: preprocessing queue for images
     :preprocessing_queue_mask: preprocessing queue for masks
-    :bool read_weights: whether to read the weights from the mask directory, defaults to False
-    :string weights_path: path to the weights directory, defaults to None
-    :int shuffle_counter: the seed offset used for shuffling, defaults to 0
     :ImageOrdering image_ordering: the ordering of the image channels, defaults to channels_last
-    
+    :bool is_column: whether the output is a column vector or not, defaults to False
+
     Raises
     ------
     :ValueError: if the output size is not a tuple of length 2
@@ -326,10 +318,13 @@ class FlowGeneratorExperimental(Sequence):
         self.preprocessing_queue_image = preprocessing_queue_image
         self.preprocessing_queue_mask = preprocessing_queue_mask
 
-    def set_mini_batch_size(self, batch_size: int) -> None:
+    def set_mini_batch_size(self, mini_batch: int) -> None:
         """
         Function to set the appropriate minibatch size. Required to allign batch size in the \
-        reader with the model. Does not change the batch size of the reader.
+        reader with the model. \
+        Does not change the batch size of the reader. \
+        Calls get_dataset_size to update the dataset size, as an extra API call.
+
 
         Parameters
         ----------
@@ -340,17 +335,28 @@ class FlowGeneratorExperimental(Sequence):
         :raises ValueError: if the mini batch size is larger than the batch size
         :raises ValueError: if the batch size is not divisible by the mini batch size
         """
-        if batch_size > self.batch_size:
+        if mini_batch > self.batch_size:
             raise ValueError("The mini batch size cannot be larger than the batch size")
-        if self.batch_size % batch_size != 0:
+        if self.batch_size % mini_batch != 0:
             raise ValueError("The batch size must be divisible by the mini batch size")
-        self.mini_batch = batch_size
+        self.mini_batch = mini_batch
         self.__update_dataset_size()
 
     def __update_dataset_size(self) -> None:
+        """
+        Updates the dataset size. Relies on the input strategy to get the dataset size.
+        """
         self.dataset_size = self.input_strategy.get_dataset_size(self.mini_batch)
 
     def __read_batch(self, dataset_index: int) -> None:
+        """
+        Requests a batch from the available strategies, which is then passed to the preprocessor, \
+        and cached for later use.
+
+        Parameters
+        ----------
+        :int dataset_index: the index of the dataset to read from
+        """
         #!adjust the batch size as it is passed to the function
         # calculates remaining images in a dataset and scales it down by multiplying with minibatch
         partial_dataset = self.dataset_size * self.mini_batch - dataset_index
@@ -436,9 +442,27 @@ class FlowGeneratorExperimental(Sequence):
         # required to check when to read the next batch
 
     def __len__(self) -> int:
+        """
+        Returns the length of the dataset. Relies on the input strategy to get the dataset size.
+
+        Returns
+        -------
+        :return int: length of the dataset
+        """
         return self.input_strategy.get_dataset_size(self.mini_batch)
 
     def __getitem__(self, index) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Returns a mini batch of images and masks. \
+
+        Parameters
+        ----------
+        :int index: the index of the mini batch to return
+
+        Returns
+        -------
+        :return tuple[np.ndarray, np.ndarray]: a mini batch of images and masks
+        """
         # check if the batch is already cached
 
         if index < self.validity_index - self.batch_size // self.mini_batch:
@@ -473,10 +497,17 @@ class FlowGeneratorExperimental(Sequence):
         return batch_images, batch_masks
 
     def on_epoch_end(self) -> None:
+        """
+        Shuffles the dataset at the end of each epoch. 
+        Can be provided to model.
+        """
         # Shuffle image and mask filenames
         self.__shuffle_filenames()
 
     def __shuffle_filenames(self) -> None:
+        """
+        Shuffles the files of the available strategies.
+        """
         new_seed = self.seed + self.shuffle_counter
         self.input_strategy.shuffle_filenames(new_seed)
         self.output_strategy.shuffle_filenames(new_seed)
