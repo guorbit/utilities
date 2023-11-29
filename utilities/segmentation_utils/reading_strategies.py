@@ -917,17 +917,38 @@ class BatchReaderStrategy:
         self.package = package
 
         self.bands_enabled = bands_enabled
+        self.inner_idx = np.arange(self.ex_batch_size)
+
+    def __resize_image_batch(self, image_batch, new_width, new_height):
+        batch_size, old_height, old_width, _ = image_batch.shape
+
+        # Create a set of indices for the new image
+        x_indices = (np.arange(new_height) * (old_height / new_height)).astype(int)
+        y_indices = (np.arange(new_width) * (old_width / new_width)).astype(int)
+
+        # Use numpy's advanced indexing to pull out the correct pixels from the original image
+        x_indices_mesh, y_indices_mesh = np.meshgrid(x_indices, y_indices, indexing='ij')
+
+        # Repeat the indices arrays along the batch dimension
+        x_indices_mesh = np.repeat(x_indices_mesh[np.newaxis, :, :], batch_size, axis=0)
+        y_indices_mesh = np.repeat(y_indices_mesh[np.newaxis, :, :], batch_size, axis=0)
+
+        # Index into the original image to get the resized images
+        resized_images = image_batch[np.arange(batch_size)[:, np.newaxis, np.newaxis],
+        x_indices_mesh, y_indices_mesh]
+
+        return resized_images
 
     def read_batch(self, batch_size, dataset_index) -> np.ndarray:
         idx = dataset_index // self.ex_batch_size
+        idx = self.dataset_idxs[idx]
         images = np.load(os.path.join(self.image_path, "batch_{}.npy".format(idx)))
 
         if self.bands_enabled is None:
             self.bands_enabled = [True] * images.shape[-1]
         images = images[:, :, :, self.bands_enabled]
-
+        images = self.__resize_image_batch(images, self.image_size[0], self.image_size[1])
         if idx == self.last_batch_idx and images.shape[0] != batch_size:
-            print("last irregular batch")
             return images[:batch_size, ...]
         return images
 
@@ -939,4 +960,9 @@ class BatchReaderStrategy:
 
     def shuffle_filenames(self, seed: int) -> None:
         state = np.random.RandomState(seed)
-        state.shuffle(self.dataset_idxs)
+        remaining_idxs = self.dataset_idxs[:-1]
+        # Shuffle the remaining batch indexes
+        state.shuffle(remaining_idxs)
+        # Append the last batch index back
+        self.dataset_idxs = np.concatenate([remaining_idxs, [self.last_batch_idx]])
+        state.shuffle(self.inner_idx)
