@@ -10,6 +10,8 @@ ENV GIT_CLONE="git clone --depth 10"
 
 # installing base operation packages
 
+RUN $APT_INSTALL software-properties-common
+
 
 RUN add-apt-repository ppa:deadsnakes/ppa -y && \
 # Installing python3.11
