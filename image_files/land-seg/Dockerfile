@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.6.1-devel-ubuntu20.04
+FROM nvidia/cuda:11.0.3-devel-ubuntu20.04
 RUN yes| unminimize
 # Set ENV variables
 ENV LANG C.UTF-8
@@ -9,6 +9,8 @@ ENV PIP_INSTALL="python -m pip --no-cache-dir install --upgrade"
 ENV GIT_CLONE="git clone --depth 10"
 
 # installing base operation packages
+
+RUN $APT_INSTALL software-properties-common
 
 
 RUN add-apt-repository ppa:deadsnakes/ppa -y && \
