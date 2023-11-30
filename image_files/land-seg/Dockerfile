@@ -14,6 +14,8 @@ RUN $APT_INSTALL software-properties-common
 
 RUN $APT_INSTALL curl
 
+RUN $APT_INSTALL git
+
 RUN add-apt-repository ppa:deadsnakes/ppa -y && \
 # Installing python3.11
     $APT_INSTALL \
