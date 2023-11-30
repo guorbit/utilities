@@ -39,7 +39,7 @@ RUN pip install --upgrade setuptools
 
 RUN $PIP_INSTALL install git+https://github.com/guorbit/utilities.git@development
 
-RUN $PIP_INSTALL torch==2.1.0 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cu118
+RUN $PIP_INSTALL torch==2.1.1 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cu118
 
 RUN $PIP_INSTALL \
     cython\
