@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.13.0-gpu-jupyter
+FROM nvidia/cuda:11.6.1-devel-ubuntu20.04
 RUN yes| unminimize
 # Set ENV variables
 ENV LANG C.UTF-8
