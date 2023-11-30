@@ -40,7 +40,7 @@ RUN pip install --upgrade setuptools
 RUN $PIP_INSTALL install git+https://github.com/guorbit/utilities.git@development
 RUN $PIP_INSTALL \
     cython\
-    torch==2.1.1 \
+    torch==1.7 \
     torcheval==0.0.7\
     scikit-learn==1.3.2 \
     torchvision==0.16.1 \
