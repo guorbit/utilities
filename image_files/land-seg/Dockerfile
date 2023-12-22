@@ -38,12 +38,13 @@ RUN pip install --upgrade setuptools
 
 
 RUN $PIP_INSTALL install git+https://github.com/guorbit/utilities.git@development
+
+RUN $PIP_INSTALL torch==2.1.1 torchvision==0.16.1 --index-url https://download.pytorch.org/whl/cu118
+
 RUN $PIP_INSTALL \
     cython\
-    torch==1.7 \
     torcheval==0.0.7\
     scikit-learn==1.3.2 \
-    torchvision==0.16.1 \
     numpy==1.23.4 \
     pandas==1.5.0 \
     matplotlib==3.6.1 \
