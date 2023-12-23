@@ -64,8 +64,8 @@ RUN $PIP_INSTALL \
     notebook==6.5.5 \
     timm==0.9.12 \
     omegaconf==2.3.0 \
-    xformers==0.0.23.post1 \
-    fvcore==0.1.5.post20221221
+    xformers==0.0.18 \
+    fvcore
     
 
 
