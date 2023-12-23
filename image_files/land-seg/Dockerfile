@@ -62,7 +62,11 @@ RUN $PIP_INSTALL \
     pytorch-msssim==1.0.0 \
     einops==0.7.0 \
     notebook==6.5.5 \
-    timm==0.9.12
+    timm==0.9.12 \
+    omageconf==2.3.0 \
+    xformers==0.0.23.post1 \
+    fvcore==0.1.5.post20221221 \
+    
 
 
 RUN curl -sL https://deb.nodesource.com/setup_16.x | bash  && \
