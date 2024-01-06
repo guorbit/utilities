@@ -71,7 +71,7 @@ RUN $PIP_INSTALL \
     openmim
 
 RUN mim install mmcv-full==1.6.2 --no-deps
-RUN mim install mmengine --nodeps
+RUN mim install mmengine --no-deps
 RUN mim install mmsegmentation==0.30.0
     
 
