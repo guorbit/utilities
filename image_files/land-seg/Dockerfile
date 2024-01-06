@@ -65,7 +65,14 @@ RUN $PIP_INSTALL \
     timm==0.9.12 \
     omegaconf==2.3.0 \
     xformers==0.0.18 \
-    fvcore
+    fvcore \
+    yapf \
+    addict \
+    openmim
+
+RUN mim install mmcv-full==1.6.2 --no-deps \
+    mim install mmengine --nodeps \
+    mim install mmsegmentation==0.30.0
     
 
 
