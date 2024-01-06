@@ -70,9 +70,9 @@ RUN $PIP_INSTALL \
     addict \
     openmim
 
-RUN mim install mmcv-full==1.6.2 --no-deps \
-    mim install mmengine --nodeps \
-    mim install mmsegmentation==0.30.0
+RUN mim install mmcv-full==1.6.2 --no-deps
+RUN mim install mmengine --nodeps
+RUN mim install mmsegmentation==0.30.0
     
 
 
