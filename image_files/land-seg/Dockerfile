@@ -72,7 +72,7 @@ RUN $PIP_INSTALL \
 
 RUN mim install mmcv-full==1.5 --no-deps
 RUN mim install mmengine --no-deps
-RUN mim install mmsegmentation==0.27.0
+RUN pip install mmsegmentation==0.27.0
     
 
 
