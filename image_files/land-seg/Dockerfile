@@ -1,4 +1,4 @@
-FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
+FROM nvidia/cuda:11.0.3-devel-ubuntu20.04
 RUN yes| unminimize
 # Set ENV variables
 ENV LANG C.UTF-8
@@ -65,14 +65,7 @@ RUN $PIP_INSTALL \
     timm==0.9.12 \
     omegaconf==2.3.0 \
     xformers==0.0.18 \
-    fvcore \
-    yapf \
-    addict \
-    openmim
-
-RUN mim install mmcv-full==1.5 --no-deps
-RUN mim install mmengine --no-deps
-RUN pip install mmsegmentation==0.27.0
+    fvcore
     
 
 
